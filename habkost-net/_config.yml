@@ -16,7 +16,8 @@
 title: Eduardo Habkost
 author: Eduardo Habkost
 #email: eduardo@habkost.net
-description: Eduardo Habkost's personal blog. KVM, QEMU, virtualization, etc.
+description: >
+    Software Developer. C; QEMU; KVM; virtualization; Linux; Python; etc.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://habkost.net" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: ehabkost
