@@ -19,7 +19,7 @@ author: Eduardo Habkost
 description: 
 #  Eduardo Habkost's personal blog.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://eduardo.habkost.net" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://habkost.net" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: ehabkost
 github_username:  ehabkost
 permalink: /posts/:year/:month/:slug.html
