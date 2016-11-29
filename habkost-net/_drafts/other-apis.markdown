@@ -21,3 +21,4 @@ title: Other APIs to write about
 * Jobs
   * https://www.youtube.com/watch?v=FWTTHRFWq3Q
   * http://www.linux-kvm.org/images/2/2c/02Thu-1400-Snow.pdf
+* Accelerator types

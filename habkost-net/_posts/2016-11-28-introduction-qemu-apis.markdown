@@ -19,6 +19,7 @@ and what we can expect to see happening to them in the future.
 When I do that, I will update this post to include pointers to
 the more detailed content.
 
+
 ## QemuOpts
 
 [Introduced in 2009](https://github.com/qemu/qemu/commit/e27c88fe9eb26648e4fb282cb3761c41f06ff18a).
@@ -31,6 +32,7 @@ Making QemuOpts work with the more modern abstractions (esp. QOM
 and QAPI) may be painful. Sometimes you can pretend it is not
 there, but you can't run away from it if you are dealing with
 QEMU configuration or command-line parameters.
+
 
 ## qdev
 
@@ -76,7 +78,8 @@ See also:
 
 QOM is short for _QEMU Object Model_ and was [introduced in 2011](https://github.com/qemu/qemu/commit/2f28d2ff9dce3c404b36e90e64541a4d48daf0ca).
 It is heavily documented on [its header file](https://github.com/qemu/qemu/blob/master/include/qom/object.h).
-It started as a generalization of qdev.
+It started as a generalization of qdev. Today the device tree and
+backend objects are managed through the QOM object tree.
 
 From its documentation:
 
@@ -88,8 +91,16 @@ From its documentation:
 >  - Support for single-inheritance of types
 >  - Multiple inheritance of stateless interfaces
 
-In addition to the above, QOM has a property system. qdev's
-property system is built on top of QOM's property system.
+QOM also has a property system for introspection and
+object/device configuration. qdev's property system is built on
+top of QOM's property system.
+
+Some QOM types and their properties are meant to be used
+internally only (e.g. some devices that are not pluggable and
+only created by machine code; accelerator types). Some devices
+are meant to be directly created and manipulated by the user
+(e.g. pluggable devices that can be created using `-device` and
+`device_add`)
 
 See also:
 * KVM Forum 2014 talk by Paolo Bonzini: _"QOM exegesis and apocalypse"_ ([slides](http://www.linux-kvm.org/images/9/90/Kvmforum14-qom.pdf), [video](https://youtu.be/fnLJn7PKhyo)).
@@ -190,6 +201,7 @@ From [the documentation](https://github.com/qemu/qemu/blob/master/docs/qapi-code
 
 See also:
 * KVM Forum 2011 talk by Anthony Liguori: _"Code Generation for Fun and Profit"_ ([slides](http://www.linux-kvm.org/images/e/e6/2011-forum-qapi-liguori.pdf), [video](https://youtu.be/YIO34fz8ans))
+
 
 ## Visitor API
 
