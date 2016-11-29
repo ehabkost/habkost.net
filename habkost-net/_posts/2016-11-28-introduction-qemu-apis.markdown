@@ -9,7 +9,7 @@ slug: incomplete-list-of-qemu-apis
 Having seen many people (including myself) feeling confused about
 the purpose of some QEMU's internal APIs when
 reviewing and contributing code to QEMU, I am trying to document
-things I learned about some of them.
+things I learned about them.
 
 <!--more-->
 
@@ -37,9 +37,6 @@ QEMU configuration or command-line parameters.
 ## qdev
 
 qdev [was added to QEMU in 2009](https://github.com/qemu/qemu/commit/aae9460e244c7abe70b72ff374b3aa102bb09691).
-I couldn't find clear pointers to its origins and goals on qemu-
-devel or source code commits.
-
 qdev manages the QEMU _device tree_, based on a hierarchy of
 _buses_ and _devices_. You can see the device tree managed by
 qdev using the `info qtree` monitor command in QEMU.
@@ -97,10 +94,10 @@ top of QOM's property system.
 
 Some QOM types and their properties are meant to be used
 internally only (e.g. some devices that are not pluggable and
-only created by machine code; accelerator types). Some devices
-are meant to be directly created and manipulated by the user
-(e.g. pluggable devices that can be created using `-device` and
-`device_add`)
+only created by machine code; accelerator objects). Some types can
+be instantiated and configured directly from the QEMU monitor or
+command-line (using, e.g., `-device`, `device_add`, `-object`,
+`object-add`).
 
 See also:
 * KVM Forum 2014 talk by Paolo Bonzini: _"QOM exegesis and apocalypse"_ ([slides](http://www.linux-kvm.org/images/9/90/Kvmforum14-qom.pdf), [video](https://youtu.be/fnLJn7PKhyo)).
@@ -110,8 +107,7 @@ See also:
 
 VMState was [introduced in 2009](https://github.com/qemu/qemu/commit/9ed7d6ae0fe7abb444c65caaadb5ef307df82c60).
 It was added to change the device state saving/loading (for
-savevm and migration) from error-prone ad-hoc coding to a table-
-based approach.
+savevm and migration) from error-prone ad-hoc coding to a table-based approach.
 
 From the original commit:
 
@@ -140,7 +136,7 @@ QMP is the _QEMU Machine Protocol_. [Introduced in 2009](https://github.com/qemu
 > QMP is [JSON](http://www.json.org) based and features the following:
 > 
 > - Lightweight, text-based, easy to parse data format
-> - Asynchronous messages support (ie. events)
+> - Asynchronous messages support (i.e. events)
 > - Capabilities Negotiation
 > 
 > For detailed information on QMP's usage, please, refer to the following files:
@@ -207,9 +203,9 @@ See also:
 
 QAPI includes an API to define and use
 [visitors](https://en.wikipedia.org/wiki/Visitor_pattern) for the
-QAPI-defined data types. The visitors are the way QAPI data is
-serialized to/from the external world (through QMP, the command-
-line, or config files).
+QAPI-defined data types. Visitors are the mechanism used to
+serialize QAPI data to/from the external world (e.g. through QMP, the
+command-line, or config files).
 
 From [its documentation](https://github.com/qemu/qemu/blob/master/include/qapi/visitor.h):
 
@@ -235,9 +231,20 @@ From [its documentation](https://github.com/qemu/qemu/blob/master/include/qapi/v
 > about the QAPI code generator.
 
 
-## Feedback wanted
+## The End
 
-If you have any correction or suggestion to this
+Although large, this list is incomplete. In the near future, I
+plan to write about QAPI, QOM, and QemuOpts, and how they work
+(and sometimes don't work) together.
+
+Most of the abstractions above are about _data modeling_, in one
+way or another. That's not a coincidence: one of the things I
+want to write about are how some times those data abstractions
+have conflicting world views, and the issues resulting from that.
+
+
+
+**Feedback wanted:** if you have any correction or suggestion to this
 list, please send your comments. You can use the
-[Github page for the post](https://github.com/ehabkost/habkost.net/blame/master/habkost-net/_posts/2016-11-28-introduction-qemu-apis.markdown)
+[GitHub page for the post](https://github.com/ehabkost/habkost.net/blame/master/habkost-net/_posts/2016-11-28-introduction-qemu-apis.markdown)
 to send comments or suggest changes, or just [e-mail me](mailto:ehabkost@redhat.com).
