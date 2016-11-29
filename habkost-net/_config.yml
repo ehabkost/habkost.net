@@ -25,6 +25,8 @@ github_username:  ehabkost
 linkedin_username: ehabkost
 permalink: /posts/:year/:month/:slug.html
 
+excerpt_separator: '<!--more-->'
+
 # Build settings
 markdown: kramdown
 theme: minima
