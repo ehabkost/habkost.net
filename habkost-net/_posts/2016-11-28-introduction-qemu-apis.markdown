@@ -6,8 +6,6 @@ categories: virt
 slug: incomplete-list-of-qemu-apis
 ---
 
-TODO: more pointers
-
 Having seen many people (including myself) feeling confused about
 the purpose of some QEMU's internal APIs when
 reviewing and contributing code to QEMU, I am trying to document
@@ -16,7 +14,7 @@ things I learned about some of them.
 <!--more-->
 
 I want to make more detailed blog posts about some of them,
-stating their goals (as I perceived them), where they are used,
+stating their goals (as I perceive them), where they are used,
 and what we can expect to see happening to them in the future.
 When I do that, I will update this post to include pointers to
 the more detailed content.
@@ -66,7 +64,13 @@ Some may argue that qdev doesn't _exist_ anymore, and was
 _replaced_ by QOM. Others (including myself) describe it as being
 _built on top_ of QOM. Either way you describe it, the same
 features provided by the original qdev code are provided by the
-QOM-based code living in `hw/core/`.
+QOM-based code living in `hw/core`.
+
+See also:
+* KVM Forum 2010 talk by Markus Armbruster: _"QEMU's new device model qdev"_ ([slides](http://www.linux-kvm.org/images/f/fe/2010-forum-armbru-qdev.pdf))
+* KVM Forum 2011 talk by Markus Armbruster: _"QEMU's device model qdev: Where do we go from here?"_ ([slides](http://www.linux-kvm.org/images/b/bc/2011-forum-armbru-qdev.pdf). [video](https://youtu.be/Cpt5Zqs_Iq0))
+* KVM Forum 2013 talk by Andreas Färber: _"Modern QEMU Devices"_ ([slides](http://www.linux-kvm.org/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf), [video](https://youtu.be/9LXvZOrHwjw))
+
 
 ## QOM
 
@@ -83,6 +87,12 @@ From its documentation:
 >  - System for dynamically registering types
 >  - Support for single-inheritance of types
 >  - Multiple inheritance of stateless interfaces
+
+In addition to the above, QOM has a property system. qdev's
+property system is built on top of QOM's property system.
+
+See also:
+* KVM Forum 2014 talk by Paolo Bonzini: _"QOM exegesis and apocalypse"_ ([slides](http://www.linux-kvm.org/images/9/90/Kvmforum14-qom.pdf), [video](https://youtu.be/fnLJn7PKhyo)).
 
 
 ## VMState
@@ -102,6 +112,33 @@ From the original commit:
 > - will allows us to have new interesting commands, like dump <device>, that shows all its internal state.
 > - Just now, the only added type is arrays, but we can add structures.
 > - Uses old load_state() function for loading old state.
+
+See also:
+* KVM Forum 2010 talk by Juan Quintela: _"Migration: How to hop from machine to machine without losing state"_ ([slides](http://www.linux-kvm.org/images/c/c4/2010-forum-migration.pdf))
+* KVM Forum 2011 talk by Juan Quintela: _"Migration: one year later"_ ([slides](http://www.linux-kvm.org/images/1/1e/2011-forum-migration.pp.pdf), [video](https://youtu.be/Mhac35QQWSw))
+* KVM Forum 2012 talk by Michael Roth: _"QIDL: An Embedded Language to Serialize Guest Data Structures for Live Migration"_ ([slides](http://www.linux-kvm.org/images/b/b5/2012-forum-qidl-talk.pdf))
+
+
+## QMP
+
+QMP is the _QEMU Machine Protocol_. [Introduced in 2009](https://github.com/qemu/qemu/commit/9b57c02e3e14163b576ada77ddd1d7b346a6e421). From [its documentation](https://github.com/qemu/qemu/blob/master/docs/qmp-intro.txt):
+
+> The QEMU Machine Protocol (QMP) allows applications to operate a
+> QEMU instance.
+> 
+> QMP is [JSON](http://www.json.org) based and features the following:
+> 
+> - Lightweight, text-based, easy to parse data format
+> - Asynchronous messages support (ie. events)
+> - Capabilities Negotiation
+> 
+> For detailed information on QMP's usage, please, refer to the following files:
+> 
+> * qmp-spec.txt      QEMU Machine Protocol current specification
+> * qmp-commands.txt  QMP supported commands (auto-generated at build-time)
+> * qmp-events.txt    List of available asynchronous events
+
+See also: KVM Forum 2010 talk by Luiz Capitulino, [A Quick Tour of the QEMU Monitor Protocol](http://www.linux-kvm.org/images/1/17/2010-forum-qmp-status-talk.pp.pdf).
 
 
 ## QObject
@@ -151,11 +188,16 @@ From [the documentation](https://github.com/qemu/qemu/blob/master/docs/qapi-code
 > signatures, and marshaling/dispatch code. This document will describe
 > how the schemas, scripts, and resulting code are used.
 
+See also:
+* KVM Forum 2011 talk by Anthony Liguori: _"Code Generation for Fun and Profit"_ ([slides](http://www.linux-kvm.org/images/e/e6/2011-forum-qapi-liguori.pdf), [video](https://youtu.be/YIO34fz8ans))
 
-## Visitors
+## Visitor API
 
-QAPI includes an API to define and use [visitors](https://en.wikipedia.org/wiki/Visitor_pattern)
-for the QAPI-defined data types.
+QAPI includes an API to define and use
+[visitors](https://en.wikipedia.org/wiki/Visitor_pattern) for the
+QAPI-defined data types. The visitors are the way QAPI data is
+serialized to/from the external world (through QMP, the command-
+line, or config files).
 
 From [its documentation](https://github.com/qemu/qemu/blob/master/include/qapi/visitor.h):
 
@@ -181,30 +223,9 @@ From [its documentation](https://github.com/qemu/qemu/blob/master/include/qapi/v
 > about the QAPI code generator.
 
 
-## QMP
-
-QMP is the _QEMU Machine Protocol_. [Introduced in 2009](https://github.com/qemu/qemu/commit/9b57c02e3e14163b576ada77ddd1d7b346a6e421). From [its documentation](https://github.com/qemu/qemu/blob/master/docs/qmp-intro.txt):
-
-> The QEMU Machine Protocol (QMP) allows applications to operate a
-> QEMU instance.
-> 
-> QMP is [JSON](http://www.json.org) based and features the following:
-> 
-> - Lightweight, text-based, easy to parse data format
-> - Asynchronous messages support (ie. events)
-> - Capabilities Negotiation
-> 
-> For detailed information on QMP's usage, please, refer to the following files:
-> 
-> * qmp-spec.txt      QEMU Machine Protocol current specification
-> * qmp-commands.txt  QMP supported commands (auto-generated at build-time)
-> * qmp-events.txt    List of available asynchronous events
-
-
 ## Feedback wanted
 
 If you have any correction or suggestion to this
 list, please send your comments. You can use the
 [Github page for the post](https://github.com/ehabkost/habkost.net/blame/master/habkost-net/_posts/2016-11-28-introduction-qemu-apis.markdown)
 to send comments or suggest changes, or just [e-mail me](mailto:ehabkost@redhat.com).
-
