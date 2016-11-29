@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  An incomplete list of QEMU APIs
-date:   2016-11-28 22:20:00 -0200
+date:   2016-11-29 00:51:00 -0200
 categories: virt
 slug: incomplete-list-of-qemu-apis
 ---
