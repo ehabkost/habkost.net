@@ -6,26 +6,33 @@ categories: virt
 slug: incomplete-list-of-qemu-apis
 ---
 
-Having seen many people (including myself) feeling confused by
-some of QEMU's internal APIs when reviewing and contributing code
-to QEMU, I am trying to document things I learned about some of
-QEMU's abstraction and APIs.
+TODO: more pointers
 
-*Feedback wanted:* 
+Having seen many people (including myself) feeling confused about
+the purpose of some QEMU's internal APIs when
+reviewing and contributing code to QEMU, I am trying to document
+things I learned about some of them.
+
+<!--more-->
+
+I want to make more detailed blog posts about some of them,
+stating their goals (as I perceived them), where they are used,
+and what we can expect to see happening to them in the future.
+When I do that, I will update this post to include pointers to
+the more detailed content.
 
 ## QemuOpts
 
 [Introduced in 2009](https://github.com/qemu/qemu/commit/e27c88fe9eb26648e4fb282cb3761c41f06ff18a).
-It is a very old data abstraction in QEMU. As the original commit
-message describes it, it _stores device parameters in a better
-way than unparsed strings_. It is still used by configuration and
-command-line parsing code.
+Compared to the newer abstractions below, it is quite simple. As
+described in the original commit: it _"stores device parameters
+in a better way than unparsed strings"_. It is still used by
+configuration and command-line parsing code.
 
-Making QemuOpts work with the other newer abstractions below
-(e.g. QOM and QAPI) may be painful. Sometimes you can't run
-away from QemuOpts, sometimes you can pretend it is not there.
-But if you are dealing with QEMU configuration or command-line
-parameters, it is always there.
+Making QemuOpts work with the more modern abstractions (esp. QOM
+and QAPI) may be painful. Sometimes you can pretend it is not
+there, but you can't run away from it if you are dealing with
+QEMU configuration or command-line parameters.
 
 ## qdev
 
@@ -34,13 +41,32 @@ I couldn't find clear pointers to its origins and goals on qemu-
 devel or source code commits.
 
 qdev manages the QEMU _device tree_, based on a hierarchy of
-_buses_ and _devices_.
+_buses_ and _devices_. You can see the device tree managed by
+qdev using the `info qtree` monitor command in QEMU.
 
-Some may argue that qdev was _replaced_ by QOM, others may
-describe it as being _built on top_ of QOM. Either way you
-describe it, there are `qdev-*.[ch]` files and `qdev_*()`
-functions living inside QEMU that take care of device state and
-device tree management.
+qdev allows device code to register implementations of _device
+types_. Machine code, on the other hand, would instantiate those
+devices and configure them by setting _properties_, and not
+accessing internal device data structures directly. Some devices
+can be plugged from the QEMU monitor or command-line, and their
+properties can be configured as arguments to the `-device` option or
+`device_add` command.
+
+From the original code:
+
+> The theory here is that it should be possible to create a machine without
+> knowledge of specific devices.  Historically board init routines have
+> passed a bunch of arguments to each device, requiring the board know
+> exactly which device it is dealing with.  This file provides an abstract
+> API for device configuration and initialization.  Devices will generally
+> inherit from a particular bus (e.g. PCI or I2C) rather than
+> this API directly.
+
+Some may argue that qdev doesn't _exist_ anymore, and was
+_replaced_ by QOM. Others (including myself) describe it as being
+_built on top_ of QOM. Either way you describe it, the same
+features provided by the original qdev code are provided by the
+QOM-based code living in `hw/core/`.
 
 ## QOM
 
@@ -63,13 +89,11 @@ From its documentation:
 
 VMState was [introduced in 2009](https://github.com/qemu/qemu/commit/9ed7d6ae0fe7abb444c65caaadb5ef307df82c60).
 It was added to change the device state saving/loading (for
-savevm and migration) from ad-hoc coding to a table-based
-approach.
+savevm and migration) from error-prone ad-hoc coding to a table-
+based approach.
 
 From the original commit:
 
-> New VMstate save/load infrastructure
-> 
 > This patch introduces VMState infrastructure, to convert the save/load
 > functions of devices to a table approach.  This new approach has the
 > following advantages:
@@ -99,7 +123,7 @@ QAPI was introduced in 2011. The original
 documentation (which can be outdated) can be seen at
 [http://wiki.qemu.org/Features/QAPI]().
 
-In [the original patch series](https://www.mail-archive.com/qemu-devel@nongnu.org/msg55267.html):
+From [the original patch series](https://www.mail-archive.com/qemu-devel@nongnu.org/msg55267.html):
 
 > Goals of QAPI
 > 
@@ -179,4 +203,8 @@ QMP is the _QEMU Machine Protocol_. [Introduced in 2009](https://github.com/qemu
 
 ## Feedback wanted
 
-I would
+If you have any correction or suggestion to this
+list, please send your comments. You can use the
+[Github page for the post](https://github.com/ehabkost/habkost.net/blame/master/habkost-net/_posts/2016-11-28-introduction-qemu-apis.markdown)
+to send comments or suggest changes, or just [e-mail me](mailto:ehabkost@redhat.com).
+
