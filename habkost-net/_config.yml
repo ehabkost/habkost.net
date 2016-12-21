@@ -27,6 +27,8 @@ permalink: /posts/:year/:month/:slug.html
 
 excerpt_separator: '<!--more-->'
 
+highlighter: pygments
+
 # Build settings
 markdown: kramdown
 theme: minima
