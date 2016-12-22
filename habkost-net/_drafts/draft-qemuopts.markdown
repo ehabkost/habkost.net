@@ -1,6 +1,277 @@
 ---
 layout: post
+title: 'QEMU APIs: short introduction to QemuOpts'
+slug: qemu-apis-qemuopts
 ---
+
+This post is a very short introduction to what QemuOpts does and
+what it is used for inside QEMU. This is part of a series. See
+[the introduction][intro] for other pointers and additional
+information.
+
+QemuOpts was [introduced in 2009][first-commit]. It is a simple
+abstraction to handle parsing of config files and store config
+options.
+
+<!--more-->
+
+## Data structures
+
+QemuOpts data model is pretty simple:
+
+* `QemuOptsList` carries the list of all options belonging to a
+  given *config group*. Each entity is represented by a
+  `QemuOpts` struct.
+
+* `QemuOpts` represents a set of key-value pairs. Some of the
+  code refers to that as a *config group*, but to avoid confusion
+  with `QemuOptsList`, I will call them *config sections*.
+
+* `QemuOpt` is a single key-value pair.
+
+Some config groups have multiple `QemuOpts` structs (e.g.
+"drive", "object", "device", that represent multiple drives,
+multiple objects, and multiple devices, respectively), while
+others always have only one `QemuOpts` struct (e.g. the "machine"
+config group).
+
+### Example:
+
+For example, the command-line options:
+
+```
+-drive id=disk1,file=disk.raw,format=raw,if=ide \
+-drive id=disk2,file=disk.qcow2,format=qcow2,if=virtio \
+-machine usb=on -machine accel=kvm
+```
+
+are represented internally as:
+
+<link rel="stylesheet" href="/css/mermaid.css">
+<script src="/js/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true});</script>
+
+<div class="mermaid">
+graph LR;
+    qemu_drive_opts[QemuOptsList qemu_drive_opts]
+        qemu_drive_opts --> disk1[QemuOpts disk1]
+            disk1 --> o1a[QemuOpt: file=disk.raw]
+            disk1 --> o1b[QemuOpt: format=raw]
+            disk1 --> o1c[QemuOpt: if=ide]
+
+        qemu_drive_opts --> disk2[QemuOpts disk2]
+            disk2 --> o2a[QemuOpt: file=disk.qcow2]
+            disk2 --> o2b[QemuOpt: format=qcow2]
+            disk2 --> o2c[QemuOpt: if=virtio]
+
+    qemu_machine_opts[QemuOptsList qemu_machine_opts]
+        qemu_machine_opts --> singleton_machine["QemuOpts (singleton)"]
+            singleton_machine --> o3a[QemuOpt: usb=on]
+            singleton_machine --> o3b[QemuOpt: accel=kvm]
+</div>
+
+
+## Data Types
+
+QemuOpts supports a limited number of data types for option
+values:
+
+* Strings
+* Boolean options
+* Numbers (integers)
+* Sizes
+
+### Strings
+
+Strings are just used as-is, after the command-line or config
+file is parsed.
+
+*Note:* On the command-line, options are separated by commas, but
+option values containing commas can be specified by escaping them
+as ",,".
+
+### Boolean options
+
+The QemuOpt parser accepts only "on" and "off" as values for this
+option.
+
+**Warning:** note that this behavior is different from the QOM
+parser. I plan to explore this in future posts.
+
+### Numbers (integers)
+
+Numbers are supposed to be unsigned 64-bit integers. However, the
+code relies on the behavior `strtoull()` and does **not** reject
+negative numbers. For example, the following command-line is not
+rejected by QEMU:
+
+```
+$ qemu-system-x86_64 -smp cpus=-18446744073709551615,cores=1,threads=1
+```
+
+I don't know if there is existing code that requires negative
+numbers to be accepted by the QemuOpts parser. I assume they
+exist, so we couldn't easily change the existing parsing rules
+without breaking existing code.
+
+### Sizes
+
+Sizes are represented internally as numbers, but the parser
+accept *suffixes* like *K*, *M*, *G*, *T*.
+
+    qemu-system-x86_64 -m size=2G
+
+is equivalent to:
+
+    qemu-system-x86_64 -m size=2048M
+
+## Skipping the QemuOpts parsers
+
+QEMU code sometimes uses some tricks to avoid or work around the
+QemuOpts option value parser:
+
+### Example 1: checking the raw option value
+
+It is possible to get the origional raw option value as a string
+using `qemu_opt_get()`, even after it was already parsed. For
+example, the code that handles memory options in QEMU does that,
+to ensure a suffix-less number is interpreted as Megabytes, not
+bytes:
+
+{% highlight C %}
+    mem_str = qemu_opt_get(opts, "size");
+    if (mem_str) {
+        if (!*mem_str) {
+            error_report("missing 'size' option value");
+            exit(EXIT_FAILURE);
+        }
+
+        sz = qemu_opt_get_size(opts, "size", ram_size);
+
+        /* Fix up legacy suffix-less format */
+        if (g_ascii_isdigit(mem_str[strlen(mem_str) - 1])) {
+            uint64_t overflow_check = sz;
+
+            sz <<= 20;
+            if ((sz >> 20) != overflow_check) {
+                error_report("too large 'size' option value");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+{% endhighlight %}
+
+### Example 2: empty option name list
+
+Some options do not use the QemuOpts value parsers at all, by not
+defining any option names in the QemuOptsList struct. In those
+cases, only the raw string values of the options are used. Some
+examples:
+
+{% highlight C %}
+static QemuOptsList qemu_machine_opts = {
+    .name = "machine",
+    .implied_opt_name = "type",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_machine_opts.head),
+    .desc = {
+        /*
+         * no elements => accept any
+         * sanity checking will happen later
+         * when setting machine properties
+         */
+        { }
+    },
+};
+{% endhighlight %}
+
+{% highlight C %}
+QemuOptsList qemu_device_opts = {
+    .name = "device",
+    .implied_opt_name = "driver",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_device_opts.head),
+    .desc = {
+        /*
+         * no elements => accept any
+         * sanity checking will happen later
+         * when setting device properties
+         */
+        { /* end of list */ }
+    },
+};
+{% endhighlight %}
+
+This is a common pattern when options are translated to other
+data representations: mostly *QOM properties* or *QAPI structs*.
+
+
+## Common operations
+
+### Registration
+
+At the beginning of `main()`, QEMU registers `QemuOptsList`
+structs for each supported config group. Example:
+
+{% highlight C %}
+QemuOptsList qemu_global_opts = {
+    .name = "global",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_global_opts.head),
+    .desc = {
+        {
+            .name = "driver",
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "property",
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "value",
+            .type = QEMU_OPT_STRING,
+        },
+        { /* end of list */ }
+    },
+};
+
+/* inside main(): */
+qemu_add_opts(&qemu_global_opts);
+{% endhighlight %}
+
+
+### Using QemuOptsList:
+
+`qemu_find_opts()` will return the corresponding `QemuOptsList`
+for a given config group:
+
+{% highlight C %}
+QemuOptsList *qemu_find_opts(const char *group);
+{% endhighlight %}
+
+For *singleton* config groups (that always have only one `QemuOpts` struct),
+you can use `qemu_find_opts_singleton()` to get the `QemuOpts` struct directly:
+
+{% highlight C %}
+QemuOpts *qemu_find_opts_singleton(const char *group);
+{% endhighlight %}
+
+For config groups containing multiple sections, you can use `qemu_opts_foreach()`:
+
+{% highlight C %}
+int qemu_opts_foreach(QemuOptsList *list, qemu_opts_loopfunc func,
+                      void *opaque, Error **errp);
+{% endhighlight %}
+
+As an example, this is the code that initializes char devices
+using the options set in "chardev" config group:
+
+{% highlight C %}
+qemu_opts_foreach(qemu_find_opts("chardev"), chardev_init_func, NULL, NULL)
+{% endhighlight %}
+
+
+## -readconfig & -writeconfig
+
+
+## Open opts list like -machine
+
 
 Things to write about:
 
@@ -8,3 +279,7 @@ Things to write about:
 * how to make it work with QOM
 * has anybody ever made it work with QAPI-based interfaces?
 * the uint64 vs int64 overflow mess
+
+
+[intro]: {% post_url 2016-11-28-introduction-qemu-apis %}
+[first-commit]: https://github.com/qemu/qemu/commit/e27c88fe9eb26648e4fb282cb3761c41f06ff18a

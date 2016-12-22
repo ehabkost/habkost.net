@@ -2,7 +2,7 @@
 layout: post
 ---
 
-Things to write about:
+TODO: Things to write about:
 
 * How the QOM tree looks like
   * Device tree as seen by qom (e.g. info qtree) vs the full QOM tree
