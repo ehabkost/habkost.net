@@ -47,7 +47,7 @@ For example, the following command-line options:
 
 are represented internally as:
 
-<img alt="qemu_drive_opts[QemuOptsList qemu_drive_opts]; qemu_drive_opts --> disk1[QemuOpts disk1]; disk1 --> option1a[QemuOpt: file=disk.raw]; disk1 --> option1b[QemuOpt: format=raw]; disk1 --> option1c[QemuOpt: if=ide]; qemu_drive_opts --> disk2[QemuOpts disk2]; disk2 --> option2a[QemuOpt: file=disk.qcow2]; disk2 --> option2b[QemuOpt: format=qcow2]; disk2 --> option2c[QemuOpt: if=virtio]; qemu_machine_opts[QemuOptsList qemu_machine_opts]; qemu_machine_opts --> singleton_machine[QemuOpts (singleton)]; singleton_machine --> option3a[QemuOpt: usb=on]; singleton_machine --> option3b[QemuOpt: accel=kvm];" src="{{ site.baseurl }}/qemuopts-example.mmd.png">
+<img alt="Diagram showing two QemuOptsList objects: qemu_drive_opts and qemu_machine_opts. qemu_drive_opts has two QemuOpts entries: disk1 and disk2. disk2 has three QemuOpt entries: file=disk.raw, format=raw, if=ide. disk2 has three QemuOpt entries: file=disk.qcow2, format=qcow2, if=virtio. qemu_machine_opts has one QemuOpts entry. The QemuOpts entry for qemu_machine_opts has two QemuOpt entries: usb=on, accel=kvm" src="{{ site.baseurl }}/qemuopts-example.mmd.png">
 
 ## Data Types
 
