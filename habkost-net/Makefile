@@ -1,4 +1,4 @@
-all: images svgs
+all: images
 
 images: qemuopts-example.mmd.png
 
