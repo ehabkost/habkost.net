@@ -33,6 +33,8 @@ and QAPI) may be painful. Sometimes you can pretend it is not
 there, but you can't run away from it if you are dealing with
 QEMU configuration or command-line parameters.
 
+**See also:** the [Introduction to QemuOpts]({{ site.baseurl }}{% post_url 2016-12-22-qemuopts %}) blog post.
+
 
 ## qdev
 
