@@ -4,16 +4,15 @@ title: 'QEMU APIs: short introduction to QemuOpts'
 slug: qemu-apis-qemuopts
 ---
 
-This post is a very short introduction to what QemuOpts does and
-what it is used for inside QEMU. This is part of a series. See
-[the introduction][intro] for other pointers and additional
-information.
+This post is a very short introduction to the QemuOpts API inside
+QEMU. This is part of a series. See [the introduction][intro] for
+other pointers and additional information.
+
+<!--more-->
 
 QemuOpts was [introduced in 2009][first-commit]. It is a simple
 abstraction to handle parsing of config files and store config
 options.
-
-<!--more-->
 
 ## Data structures
 
@@ -48,7 +47,7 @@ For example, the command-line options:
 are represented internally as:
 
 <link rel="stylesheet" href="/css/mermaid.css">
-<script src="/js/mermaid.min.js"></script>
+<script src="{{ site.baseurl }}/js/mermaid.min.js"></script>
 <script>mermaid.initialize({startOnLoad:true});</script>
 
 <div class="mermaid">
@@ -281,5 +280,5 @@ Things to write about:
 * the uint64 vs int64 overflow mess
 
 
-[intro]: {% post_url 2016-11-28-introduction-qemu-apis %}
+[intro]: {{ site.baseurl }}{% post_url 2016-11-28-introduction-qemu-apis %}
 [first-commit]: https://github.com/qemu/qemu/commit/e27c88fe9eb26648e4fb282cb3761c41f06ff18a
