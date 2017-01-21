@@ -1,0 +1,3 @@
+[submodule "reveaj.js"]
+	path = habkost-net/talks/fosdem-2017/reveal.js
+	url = https://github.com/hakimel/reveal.js.git
