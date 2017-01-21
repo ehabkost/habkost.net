@@ -1,4 +1,5 @@
-
+# QEMU APIs
+## Eduardo Habkost
 
 Note:
 > Hello, my name is Eduardo. I work for Red Hat at the KVM team,
@@ -8,14 +9,14 @@ Note:
 
 ## Contents
 
-> Contents of this talk
-
 * An overview of QEMU internals
 * How it works
 * What are the challenges
 * Not how to fix it
 * Incomplete (time is limited)
 
+Note:
+> Contents of this talk
 > If I were talking only to QEMU developers, I would probably
 > be presenting suggestions to fix some issues and change how things
 > work.
@@ -31,6 +32,7 @@ Note:
 
 "QEMU is a generic and open source machine **emulator** and **virtualizer**."
 
+Note:
 > Large set of use cases. It can be used by a lone developer testing
 > a OS image for a small embedded system, but also as the userspace
 > component of huge KVM or Xen VMs running in production systems.
@@ -49,6 +51,7 @@ Note:
 * KVM
 * Xen
 
+Note:
 > user-mode runs binaries for other architectures.
 > I won't explain how QEMU does everything, 
 
@@ -60,6 +63,7 @@ Note:
 * Monitor (comand intrface) (for humans)
 * QMP (QEMU Monitor Protocol) (for machines)
 
+Note:
 > Image: QEMU command-line
 > Image: QEMU monitor
 > Image: QMP
@@ -68,6 +72,7 @@ Note:
 
 ## QEMU: internals
 
+Note:
 > Some tasks that are relevant for this talk:
 
 * Keeping track of configuration options
@@ -87,6 +92,7 @@ Note:
 * Few basic data types
 * Flat data model
 
+Note:
 > Image: command-line options
 > Image: config file
 
@@ -102,6 +108,7 @@ Note:
 * Reference counting
 * Rebuilt on top of QOM (next slide)
 
+Note:
 > Image: -device command-line
 > Image: info qtree
 
@@ -134,6 +141,7 @@ Note:
 
   ## APIs: QOM usage
 
+Note:
 > QOM was used to build or rebuild:
 
 * User-visible:
@@ -155,6 +163,7 @@ Note:
 * Visitors
 * Generated code for: seralization, dispatching QMP commands.
 
+Note:
 > Image: QAPI schema
 
 
@@ -164,12 +173,14 @@ Note:
 * QMP (QObject) == QAPI (yay)
 * QAPI != QOM != QemuOpts
 
+Note:
 > Table: data types comparison.
 
 
 
 ## Issue: introspection & time
 
+Note:
 > Steps:
 > 
 > * Compile time (static)
