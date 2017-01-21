@@ -1,6 +1,3 @@
----
-layout: post
----
 
 > Hello, my name is Eduardo. I work for Red Hat at the KVM team,
 > mostly on QEMU, that's a userspace component of KVM.
