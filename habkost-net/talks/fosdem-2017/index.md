@@ -1,6 +1,10 @@
 
+
+Note:
 > Hello, my name is Eduardo. I work for Red Hat at the KVM team,
 > mostly on QEMU, that's a userspace component of KVM.
+
+
 
 ## Contents
 
@@ -19,6 +23,8 @@
 > are the existing challenges, but not try to present solutions.
 > This is an invitation for discussion.
 
+
+
 ## QEMU
 
 "QEMU is a generic and open source machine emulator and virtualizer."
@@ -32,6 +38,8 @@
 > Some of the challenges we see here come from this conflict
 > of goals.
 
+
+
 ## QEMU: overview
 
 * `qemu` user-mode emulation
@@ -44,6 +52,8 @@
 > user-mode runs binaries for other architectures.
 > I won't explain how QEMU does everything, 
 
+
+
 ## QEMU: interfaces
 
 * Command-line
@@ -53,6 +63,8 @@
 > Image: QEMU command-line
 > Image: QEMU monitor
 > Image: QMP
+
+
 
 ## QEMU: internals
 
@@ -65,6 +77,8 @@
   * State (including migration)
 * machine-type system
 
+
+
 ## APIs: QemuOpts
 
 * 2009
@@ -75,6 +89,8 @@
 
 > Image: command-line options
 > Image: config file
+
+
 
 ## APIs: qdev
 
@@ -89,11 +105,15 @@
 > Image: -device command-line
 > Image: info qtree
 
+
+
 ## APIs: QMP
 
 * 2009
 * QMP and QObject
 * QObject is not QOM
+
+
 
 ## APIs: QOM
 
@@ -110,7 +130,9 @@
   * Properties can't be flagged
   * Today's convention: "x-" prefix
 
-## APIs: QOM usage
+
+
+  ## APIs: QOM usage
 
 > QOM was used to build or rebuild:
 
@@ -121,6 +143,8 @@
   * machine-type system
   * CPU configuration system
 * A few internal: MemoryRegions, IRQs, S390 IOMMU (?)
+
+
 
 ## QAPI:
 
@@ -133,12 +157,15 @@
 
 > Image: QAPI schema
 
+
+
 ## Issue: data types
 
 * QMP (QObject) == QAPI (yay)
 * QAPI != QOM != QemuOpts
 
 > Table: data types comparison.
+
 
 
 ## Issue: introspection & time
@@ -174,6 +201,7 @@
 > Image/table: showing data flow on top of the table above.
 
 
+
 ## Issue: data translation
 
 * Some data from different systems could be translated
@@ -186,6 +214,7 @@
 * Beware of duplication of parsing code
 
 
+
 ## Issue: documentation
 
 * QAPI schema (incl. QMP commands) is well documented
@@ -193,11 +222,13 @@
 * QOM types and properties are mostly not documented
 
 
+
 ## Conclusion
 
 What should we do?
 
 Send messages to qemu-devel and fix stuff.  ;)
+
 
 
 ## Pointers:
