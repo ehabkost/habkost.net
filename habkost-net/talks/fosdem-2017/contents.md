@@ -118,7 +118,7 @@ QMP.
 
 
 
-# QEMU internals
+# QEMU Internals
 
 
 ## Things to handle:
