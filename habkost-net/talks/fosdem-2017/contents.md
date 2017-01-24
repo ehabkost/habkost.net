@@ -5,6 +5,13 @@ Eduardo Habkost &lt;ehabkost@redhat.com&gt;
 Note: Hello, my name is Eduardo. I work for Red Hat at the KVM team,
 mostly on QEMU. I will talk about the internal APIs in QEMU.
 
+* TODO: enums
+* TODO: lists on QemuOpts
+* TODO: MORE EXAMPLES!!!
+* TODO: danpb work on qemuopts/qapi
+* TODO: slide numbers!
+* TODO: make introduction shorter
+* TODO: mention HMP acronym
 
 
 # Contents
