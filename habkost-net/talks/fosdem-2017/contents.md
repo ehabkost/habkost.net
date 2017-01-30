@@ -11,20 +11,28 @@ mostly on QEMU. I will talk about the internal APIs in QEMU.
 * TODO: danpb work on qemuopts/qapi
 * TODO: slide numbers!
 * TODO: make introduction shorter
-* TODO: mention HMP acronym
 
 
 # Contents
 
 * Context: QEMU features and interfaces
 * Overview of some internal QEMU APIs
-* Issues and challenges
+* Interaction between different abstractions
 
 Note: These are the contents of this talk. I will first explain a
 little bit of what QEMU does, then present of the internal APIs
-QEMU has, and how they are used. Then I will talk about the
-existing issues and challenges we have when we try to make those
-APIs work together.
+QEMU has. Then I will talk about how they work and don't work
+together.
+
+
+## Incomplete
+
+* Limited time
+* Limited knowledge
+
+Note: Keep in mind that this talk is incomplete: we do not cover
+every single internal QEMU API. That's because we don't have much
+time and I don't have knowldge about all those APIs.
 
 
 ## *Not* included:
@@ -39,17 +47,8 @@ suggesting how to fix some issues and change how things work. We
 often see this sort of talk on KVM Forum, for example.
 
 Here I will **try** to not present solutions or suggest how to
-fix things. This is an invitation for discussion, only.
-
-
-## Incomplete
-
-* Time is limited
-* Knowledge is limited
-
-Note: Keep in mind that this talk is incomplete: we do not cover
-every single internal QEMU API. That's because we don't have much
-time and I lack the knowledge about some other APIs.
+fix things. This is an introduction only. It may generate some
+interesting discussion later, though.
 
 
 # Context
@@ -64,46 +63,18 @@ do.
 
 Note:
 
-This is how QEMU is described at qemu.org. Being an "emulator"
-and "virtualizer", QEMU has a large set of use cases. It can be
-used by a lone developer testing a OS image for a small embedded
-system, but also as the userspace component of huge KVM or Xen
-VMs running in production systems. Some of the challenges we see
-here come from this conflict of goals.
-
-
-## QEMU modes:
-
-* `qemu-*` &mdash; user-mode emulation
-* `qemu-system-*` &mdash; system emulation
-
-Note:
-
-QEMU has two main modes of operation. user-mode emulation is
-available for Linux and BSD, it can run binaries compiled for
-other architectures, no hardware emulation. System emulation can
-emulate a complete machine. System emulation is the mode that
-also supports Xen and KVM virtualization.
-
-
-## (CPU) <i>Accelerators</i>
-
-* KVM
-* Xen
-* TCG (emulator)
-
-Note: Accelerators are basically how the Xen and KVM stuff inside
-QEMU is called. They basically change how CPUs are executed,
-while keeping the existing hardware emulation code. TCG is the
-original CPU emulator code from QEMU.
+This is how QEMU is described at its web site. I won't try to
+explain all about it, but the summary is: QEMU can be used as an
+emulator, or for running KVM or Xen virtual machines while
+emulating some of the hardware.
 
 
 ## Interfaces
 
 * Command-line
 * Config files
-* Monitor (command interface) (for humans)
-* QMP (QEMU Monitor Protocol) (for machines)
+* Machine Monitor (QMP)
+* Human Monitor (HMP)
 
 Note:
 
@@ -115,6 +86,13 @@ QMP.
 * TODO: Image: QEMU command-line
 * TODO: Image: QEMU monitor
 * TODO: Image: QMP
+
+QMP is the machine-friendly monitor protocol. It is based
+on JSON.
+
+QMP is used for most runtime communication between QEMU and
+management software. The same code is also reused for
+communication between QEMU and QEMU Guest Agent inside VMs.
 
 
 
@@ -134,8 +112,7 @@ Note: This is an incomplete list of things QEMU needs to handle
 internally. The APIs I will talk about are used to solve one or
 more of these problems. QEMU needs to keep track of configuration
 options, handle monitor commands, keep track of device
-configuration and device state (that's the frontend part), and
-backend configuration.
+configuration and device state, and backend configuration.
 
 
 ## Internal APIs
@@ -145,7 +122,7 @@ Note: let's talk about the internal APIs that let QEMU do its job.
 
 ## API: QemuOpts (2009)
 
-* Parsing and storage of command-line configuration options
+* Parsing and storage of command-line options
 * Config file support
 * Few basic data types
 * Flat data model
@@ -161,17 +138,39 @@ has very few basic data types, and has a flat data model.
 * TODO: Image: config file
 
 
+## QemuOpts example
+<pre><code data-trim data-noescape class="lang-bash">
+$ qemu-system-x86_64 <b>-memory 2G,maxmem=4G</b>
+</code></pre>
+
+<pre><code data-trim data-noescape class="lang-c">
+static QemuOptsList qemu_mem_opts = {
+    .name = "memory",
+    .implied_opt_name = "size",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_mem_opts.head),
+    .merge_lists = true,
+    .desc = {
+        { .name = "size",   .type = QEMU_OPT_SIZE, },
+        { .name = "slots",  .type = QEMU_OPT_NUMBER, },
+        { .name = "maxmem", .type = QEMU_OPT_SIZE, },
+        { /* end of list */ }
+    },
+};
+</code></pre>
+
+
 ## QemuOpts usage
 
-* Parsing of most command-line options
-* `-readconfig`, `-writeconfig` support
+* <strike>Most</strike> Many command-line options
+* Config file support (`-readconfig`, `-writeconfig`)
 * Internal storage of config options
 
-Note: QemuOpts is used to parse most of the command-line options,
-as a storage system for config options, and to read and write VM
-configuration to config files. Note that as config options can be
-exported, QEMU tries to store all configuration options inside
-QemuOpts so it can be exported later.
+Note: QemuOpts is used to parse many (or most, depending of how
+you count) of the command-line options, as a storage system for
+config options, and to read and write VM configuration to config
+files. Note that as config options can be exported, QEMU tries to
+store all configuration options inside QemuOpts so it can be
+exported later.
 
 
 ## API: qdev (2009)
@@ -183,7 +182,7 @@ QemuOpts so it can be exported later.
 
 Note:
 
-qdeve is the bus and device tree system hierarchy system. It
+qdev is the bus and device tree system hierarchy system. It
 allows QEMU to provide a unified interface to create, configure
 and plug devices. It means having generic internal and external
 APIs to handle devices. It provides a property system that allow
@@ -191,6 +190,85 @@ introspection of all device configuration.
 
 * TODO: Image: -device command-line
 * TODO: Image: info qtree
+
+
+## qdev Example
+
+<pre><code data-trim data-noescape class="lang-bash">
+$ qemu-system-x86_64 <b>-device e1000,mac=12:34:56:78:9a:bc</b>
+</code></pre>
+
+<pre><code data-trim data-noescape class="lang-json">
+#define DEFINE_NIC_PROPERTIES(_state, _conf)             \
+    DEFINE_PROP_MACADDR("mac",   _state, _conf.macaddr), \
+    DEFINE_PROP_VLAN("vlan",     _state, _conf.peers),   \
+    DEFINE_PROP_NETDEV("netdev", _state, _conf.peers)
+
+static Property e1000_properties[] = {
+    DEFINE_NIC_PROPERTIES(E1000State, conf),
+    DEFINE_PROP_BIT("autonegotiation", E1000State,
+                    compat_flags, E1000_FLAG_AUTONEG_BIT, true),
+    /* [...] */
+};
+</code></pre>
+
+
+## qdev device tree
+
+<pre><code data-trim data-noescape>
+(qemu) info qtree
+bus: main-system-bus
+  type System
+  dev: hpet, id ""
+    gpio-in "" 2
+    gpio-out "" 1
+    gpio-out "sysbus-irq" 32
+    timers = 3 (0x3)
+    msi = false
+    hpet-intcap = 4 (0x4)
+    mmio 00000000fed00000/0000000000000400
+  dev: kvm-ioapic, id ""
+    gpio-in "" 24
+    gsi_base = 0 (0x0)
+    mmio 00000000fec00000/0000000000001000
+  dev: i440FX-pcihost, id ""
+    pci-hole64-size = 18446744073709551615 (16 EiB)
+    short_root_bus = 0 (0x0)
+    bus: pci.0
+      type PCI
+      dev: PIIX4_PM, id ""
+        smb_io_base = 1792 (0x700)
+        disable_s3 = 0 (0x0)
+        disable_s4 = 0 (0x0)
+        s4_val = 2 (0x2)
+        acpi-pci-hotplug-with-bridge-support = true
+        memory-hotplug-support = true
+        addr = 01.3
+        romfile = ""
+        rombar = 1 (0x1)
+        multifunction = false
+        command_serr_enable = true
+        x-pcie-lnksta-dllla = true
+        class Bridge, addr 00:01.3, pci id 8086:7113 (sub 1af4:1100)
+        bus: i2c
+          type i2c-bus
+          dev: smbus-eeprom, id ""
+            address = 87 (0x57)
+          dev: smbus-eeprom, id ""
+            address = 86 (0x56)
+          dev: smbus-eeprom, id ""
+            address = 85 (0x55)
+          dev: smbus-eeprom, id ""
+            address = 84 (0x54)
+          dev: smbus-eeprom, id ""
+            address = 83 (0x53)
+          dev: smbus-eeprom, id ""
+            address = 82 (0x52)
+          dev: smbus-eeprom, id ""
+            address = 81 (0x51)
+          dev: smbus-eeprom, id ""
+            address = 80 (0x50)
+</code></pre>
 
 
 ## qdev usage
@@ -208,53 +286,17 @@ configuration. When we introduced QOM, the QEMU Object Model in
 2011, the qdev abstractions were kept but rebuilt on top of QOM.
 
 
-## API: QMP (2009)
-
-* JSON-based monitor protocol
-
-Note: QMP is the machine-friendly monitor protocol. It is based
-on JSON.
-
-
-## QMP usage
-
-* QEMU ⇔ management software communication
-* QEMU Guest Agent
-* Data representation: QObject
-
-Note: QMP is used for most runtime communication between QEMU and
-management software. The same code is also reused for
-communication between QEMU and QEMU Guest Agent inside VMs. It
-also originated the QObject abstractions for representing data
-internally.
-
-
-## API: QObject (2009)
-
-* Created for QMP
-* Same data types as JSON: string, integer, float, dictionary, list, bool, null
-* Reference counting
-
-Note: QObject was created for QMP and was successfully reused by
-other systems later. It can represent all the data types
-supported by JSON, and implements a reference counting system.
-
-
-## QObject usage
-
-* QMP
-* QAPI-based interfaces
-* Internal data structures
-
-Note: In addition to QMP, QObject was reused later by QAPI and
-for representing some internal data structures.
-
-
 ## API: QAPI (2011)
 
 * Formal schema for interfaces
 * Visitor API
-* Generated code for: serialization, dispatching QMP commands
+* Generated code for:
+  * C types
+  * Serialization
+  * Visitors
+  * QMP commands and events
+  * Interface introspection
+  * Documentation
 
 Note:
 
@@ -263,8 +305,6 @@ JSON-like language for defining data structures and interfaces
 (like QMP commands). It provides a visitor API for implementing
 data input, output and conversion, and generates visitor code,
 code for serialization, and for dispatching QMP commands.
-
-* TODO: Image: QAPI schema
 
 
 ## QAPI usage
@@ -276,6 +316,39 @@ Note: QAPI is successfully used to define and dispatch all QMP
 commands, and to define and parse a few command-line options.
 Every single data structure and QMP command has very detailed
 documentation. It is a great system.
+
+TODO: check list of internal/non-QMP interfaces or types.
+
+
+## QAPI Example: `chardev-add`
+
+<pre><code data-trim data-noescape class="lang-json">
+-> { "execute" : "chardev-add",
+     "arguments" : {
+         "id" : "bar",
+         "backend" : { "type" : "file",
+                       "data" : { "out" : "/tmp/bar.log" } } } }
+<- { "return": {} }
+</code></pre>
+
+
+### `chardev-add` QAPI schema
+
+<pre><code data-trim data-noescape class="lang-js">
+{ <span class="symbol">'command'</span>: 'chardev-add',
+  'data': { 'id': 'str',
+            'backend': 'ChardevBackend' },
+  'returns': 'ChardevReturn' }
+
+{ 'union': 'ChardevBackend',
+  'data': { 'file': 'ChardevFile',
+            'serial': 'ChardevHostdev',
+            <i class="comment">[...]</i> } }
+
+{ 'struct': 'ChardevFile',
+  'data': { '*in' : 'str', 'out' : 'str', '*append': 'bool' },
+  'base': 'ChardevCommon' }
+</code></pre>
 
 
 ## API: QOM (2011)
@@ -296,11 +369,11 @@ try to cover all of them.
 
 * qdev (`-device`, `device_add`)
 * backend objects (`-object`)
-* *accelerator* configuration (TCG, KVM, Xen)<br>(`-machine accel=...`)
+* *Accelerator* configuration (TCG, KVM, Xen)<br>(`-machine accel=...`)
 * machine-type system (`-machine`)
-* CPU configuration system (`-cpu`, `query-cpu-*`)
-* Manipulation of object/device tree through QMP
-* Some internal data-structures (MemoryRegions, IRQs)
+* CPU configuration system<br>(`-cpu`, `query-cpu-*`)
+* Direct manipulation through QMP<br>(`qom-list`, `qom-get`, `qom-set`)
+* Some internal data structures (MemoryRegions, IRQs)
 
 Note: QOM is also quite successful. Most of the existing qdev
 code is just a wrapper around QOM abstractions. QOM used to build
@@ -311,20 +384,21 @@ the CPU configuration system. QOM is also used for some internal
 data structures like MemoryRegions and IRQs.
 
 
-## QOM tree manipulation
-
-* QOM device/object tree can be manipulated through QMP
-* Not very popular in practice
-
-Note: The QOM object tree is exposed to the outside through QMP
-commands. In theory this could be used to provide generic
-interfaces to configure and manipulate devices and objects
-without introducing new specialized QMP commands. But in practice
-we normally add new commands and structs in the QAPI schema
-instead of just letting new features be implemented through pure
-QOM manipulation. There are multiple reasons for that, and I hope
-some of them will be clear in the rest of this talk.
-
+<!-- -->
+<!-- ## QOM tree manipulation-->
+<!-- -->
+<!-- * QOM device/object tree can be manipulated through QMP-->
+<!-- * Not very popular in practice-->
+<!-- -->
+<!-- Note: The QOM object tree is exposed to the outside through QMP-->
+<!-- commands. In theory this could be used to provide generic-->
+<!-- interfaces to configure and manipulate devices and objects-->
+<!-- without introducing new specialized QMP commands. But in practice-->
+<!-- we normally add new commands and structs in the QAPI schema-->
+<!-- instead of just letting new features be implemented through pure-->
+<!-- QOM manipulation. There are multiple reasons for that, and I hope-->
+<!-- some of them will be clear in the rest of this talk.-->
+<!-- -->
 
 ### QOM: internal vs. external
 
@@ -347,8 +421,16 @@ to use a naming convention to indicate which properties are
 experimental or intended for internal usage only.
 
 
+## Interface documentation
 
-# Issues
+* QAPI schema: <b>comprehensive</b>
+* QemuOpts: <b>brief</b>
+* QOM types and properties: <b>almost none</b>
+
+
+
+
+# Mixing abstractions
 
 
 ## Data types
@@ -365,16 +447,16 @@ experimental or intended for internal usage only.
   </tr>
   <tr>
     <td>QemuOpts</td>
-    <td>✔</td>
+    <td>✔\*</td>
     <td></td>
     <td>✔</td>
     <td>✔</td>
-    <td></td>
+    <td><span style="color: #bbb;">✔\*</span></td>
     <td></td>
   </tr>
   <tr>
     <td>qdev</td>
-    <td>✔</td>
+    <td>✔\*</td>
     <td></td>
     <td>✔</td>
     <td>✔</td>
@@ -382,7 +464,7 @@ experimental or intended for internal usage only.
     <td></td>
   </tr>
   <tr>
-    <td>QObject&nbsp;&amp;&nbsp;QAPI</td>
+    <td>QAPI</td>
     <td>✔</td>
     <td>✔</td>
     <td>✔</td>
@@ -396,33 +478,271 @@ experimental or intended for internal usage only.
     <td>✔</td>
     <td>✔</td>
     <td>✔</td>
-    <td style="color: gray;">✔?</td>
-    <td style="color: gray;">✔?</td>
+    <td><span style="color: #bbb;">✔\*\*</span></td>
+    <td><span style="color: #bbb;">✔\*\*</span></td>
   </tr>
 </table>
 
+<div style="margin-top: 1em; text-align: left; font-size: 75%;">
+\* Limited support<br>
+\*\* Very limited support
+</div>
+
 Note: Most of the APIs I have talked about involve some type of
 data representation. This is a summary of data types supported by
-some of those APIs. QObject and QAPI have the most powerful type
-systems. QOM is almost as powerful as QAPI, but not exactly.
+some of those APIs. QAPI have the most powerful type systems.
+QemuOpts and qdev are mor limited. QOM is almost as powerful as
+QAPI, but not exactly the same. In theory it can support all QAPI
+types, but in practice it is more limited. QemuOpts has only one
+list type: integer lists.
 
 
-## Issue: runtime data translation
+<!-- ## Interfaces <i>vs</i> internal abstractions -->
+<!--  -->
+<!-- * QMP commands: built on top of **QAPI** -->
+<!-- * (Many) Command-line options: handled using **QemuOpts** -->
+<!-- * `-device`/`device_add`: built on top of **qdev** -->
+<!-- * `-object`/`object-add`: built on top of **QOM** -->
+<!-- * `-cpu`: built on top of **qdev** -->
+<!--  -->
+<!-- Note: some of the external interfaces exposed by QEMU are built -->
+<!-- on top of existing abstractions. This is supposed to be OK, -->
+<!-- because some APIs are specialized for some tasks. But this -->
+<!-- becomes a problem when we want to translate stuff between those -->
+<!-- abstractions. -->
+<!--  -->
+<!--  -->
+## Example: `-numa` option
 
-* Some APIs have similar abstractions.
-* Translation can be a *compatibility mechanism* while porting code.
+<pre><code data-trim data-noescape class="lang-bash">
+$ qemu-system-x86_64 <b class="strong">-numa node,cpus=0-1,mem=2G</b> \
+                     <b class="strong">-numa node,2-3,mem=2G</b>
+</code></pre>
 
-Note: Sometimes similar tasks can be implemented using different
-APIs. Translation can be a compatibility mechanism while code is
-still being ported to a new system.
 
+### `-numa` QemuOptsList
+
+<pre><code data-trim data-noescape class="lang-c">
+QemuOptsList qemu_numa_opts = {
+    .name = "numa",
+    .implied_opt_name = "type",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_numa_opts.head),
+    <b class="strong">.desc = { { 0 } }</b>
+};
+</code></pre>
+
+
+### `-numa` QAPI schema
+
+<pre><code data-trim data-noescape class="lang-python">
+{ 'union': 'NumaOptions',
+  'data': {
+    'node': 'NumaNodeOptions' } }
+
+{ 'struct': 'NumaNodeOptions',
+  'data': { '*nodeid': 'uint16',
+            '*cpus':   ['uint16'],
+            '*mem':    'size',
+            '*memdev': 'str' } }
+</code></pre>
+
+
+### `-numa` glue
+
+<pre><code data-trim data-noescape class="lang-c">
+static int parse_numa(void *opaque, QemuOpts *opts, Error **errp)
+{
+    Visitor *v = opts_visitor_new(opts);
+    visit_type_NumaOptions(v, NULL, &amp;object, &amp;err);
+    /* [...] */
+}
+</code></pre>
+
+
+## Summary: `-numa`
+
+* All options documented in QAPI schema
+* No duplication of QAPI schema info in the C code
+* Glue code made possible by `OptsVisitor`
+* Similar method used for:<br>`-net`, `-netdev`, `-acpitable`, `-machine`
+
+
+## Example `object-add`<br>QMP command
+
+<pre><code data-trim data-noescape class="lang-c">
+-> { "execute": "object-add",
+     "arguments": { "qom-type": "rng-random", "id": "rng1",
+                    "props": { "filename": "/dev/hwrng" } } }
+<- { "return": {} }
+</code></pre>
+
+
+### `object-add`: QOM properties
+
+<pre><code data-trim data-noescape class="lang-c">
+static void rng_random_init(Object *obj)
+{
+    RngRandom *s = RNG_RANDOM(obj);
+    <b>object_property_add_str</b>(obj, "filename",
+                            rng_random_get_filename,
+                            rng_random_set_filename,
+                            NULL);
+    /* [...] */
+}
+</code></pre>
+
+
+### `object-add` QMP schema
+
+<pre><code data-trim data-noescape class="lang-c">
+{ 'command': 'object-add',
+  'data': {'qom-type': 'str',
+           'id': 'str',
+           <b>'*props': 'any'</b> } }
+</code></pre>
+
+
+### Summary: `object-add`
+
+* QOM-based interface
+* QAPI schema is incomplete
+* Similar method used for `device_add`
+
+
+## Example: `-cpu` option
+
+<pre><code data-trim data-noescape class="lang-bash">
+$ qemu-system-x86_64 <b>-cpu Nehalem,+vmx,-nx</b>
+</code></pre>
+
+
+### `-cpu`: QOM properties
+
+<pre><code data-trim data-noescape class="lang-c">
+void x86_cpu_register_bit_prop(X86CPU *cpu,
+                               const char *prop_name,
+                               uint32_t *field, int bitnr)
+{
+    <b>object_property_add</b>(OBJECT(cpu), prop_name, "bool",
+                        x86_cpu_get_bit_prop,
+                        x86_cpu_set_bit_prop,
+                        x86_cpu_release_bit_prop, fp,
+                        &amp;error_abort);
+}
+/* [...] */
+static Property x86_cpu_properties[] = {
+    <b>DEFINE_PROP_BOOL</b>("pmu", X86CPU, enable_pmu, false),
+};
+</code></pre>
+
+
+### `-cpu`: glue code
+
+<pre><code data-trim data-noescape class="lang-c">
+static void x86_cpu_parse_featurestr(const char *typename,
+                                     char *features,
+                                     Error **errp)
+{
+    for (featurestr = strtok(features, ",");
+         featurestr; featurestr = strtok(NULL, ",")) {
+        /* [...] */
+        prop->driver = typename;
+        prop->property = g_strdup(name);
+        prop->value = g_strdup(val);
+        prop->errp = &amp;error_fatal;
+        <b>qdev_prop_register_global(prop);</b>
+    }
+}
+</code></pre>
+
+
+### Summary: `-cpu`
+
+* qdev/QOM-based
+* Not described on QAPI schema
+* Glue based on qdev's `-global` properties
+* Still not ported to QemuOpts
+
+
+## Example:<br>`query-cpu-model-expansion`
+
+<pre><code data-trim data-noescape class="lang-js">
+-> { "execute": "query-cpu-model-expansion",
+     "arguments": { "type": "static",
+                    "model": { "name": "Nehalem" } } }
+<- {"return": { "model": {"name": "base",
+                          "props": { "cmov": true, "ia64": false,
+                                     "aes": false, "mmx": true,
+                                     "rdpid": false,
+                                     "arat": false,
+                                     <i>[...]</i> } } } }
+</code></pre>
+
+
+### `q-c-m-expansion`: QAPI schema
+
+<pre><code data-trim data-noescape class="lang-js">
+{ 'command': 'query-cpu-model-expansion',
+  'data': { 'type': 'CpuModelExpansionType',
+            'model': 'CpuModelInfo' },
+  'returns': 'CpuModelExpansionInfo' }
+
+{ 'struct': 'CpuModelExpansionInfo',
+  'data': { 'model': 'CpuModelInfo' } }
+
+{ 'struct': 'CpuModelInfo',
+  'data': { 'name': 'str',
+            <b>'*props': 'any'</b> } }
+</code></pre>
+
+
+### Summary: `q-c-m-expansion`
+
+* qdev/QOM-based
+* QAPI schema is incomplete
+* Arch-specific glue code (currently)
+
+
+<!-- ## TODO: Example: `query-command-line-option` -->
+
+## Summary: QOM/qdev and the QAPI schema
+
+* QOM interfaces are registered/defined at run time (`class_init` & `instance_init` methods)
+* QAPI schema is a static file
+
+
+
+# Conclusion
+
+
+# Not Covered
+
+* Migration system (VMState, savevm handlers)
+* Main loop
+* Char devices
+* Block layer
+* Coroutines
+
+Note: Things not covered by this talk, but could be explored further.
+
+
+## More
+
+http://habkost.net/talks/fosdem-2017/
+
+
+
+# Appendix
+
+
+## Abstractions equivalency
 
 <style type="text/css">
 table.abstractions { font-size: smaller; }
 table.abstractions th {font-weight:bold;vertical-align:top}
 .static { background-color: #999; color: #111; }
 .gray { background-color: #778; color: #111; }
-.runtime { background-color: #336; }
+.runtime { color: #eee; background-color: #336; }
 .legend { display: inline-block; width: 1em; height: 1em;}
 </style>
 <table class="abstractions">
@@ -448,7 +768,7 @@ table.abstractions th {font-weight:bold;vertical-align:top}
     <td class="static">schema field</td>
   </tr>
   <tr>
-    <td class="static">option default</td>
+    <td class="gray">option default</td>
     <td class="static">property default</td>
     <td class="gray">property default</td>
     <td class="static">-</td>
@@ -612,13 +932,6 @@ schema and on the QOM property registration code.
 <!-- from QAPI schema. -->
 <!--  -->
 <!--  -->
-## Issue: interface documentation
-
-* QAPI schema: <b>comprehensive</b>
-* QemuOpts: <b>brief</b>
-* QOM types and properties: <b>almost none</b>
-
-
 ## Issue: Introspection & data availability
 
 
@@ -678,29 +991,3 @@ defined statically, but also treated like dynamic data.
 
 
 
-# Not Covered
-
-* Migration system (VMState, savevm handlers)
-* Main loop
-* Char devices
-* Block layer
-* Coroutines
-
-Note: Things not covered by this talk, but could be explored further.
-
-
-# Conclusion
-
-
-Q: What should we do?
-
-A: Propose and discuss solutions on qemu-devel.  ;)
-
-
-
-## More
-
-http://habkost.net/talks/fosdem-2017/
-
-Note:
-* TODO: add URL
