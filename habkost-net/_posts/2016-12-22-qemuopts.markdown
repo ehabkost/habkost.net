@@ -3,6 +3,7 @@ layout: post
 title: 'QEMU APIs: introduction to QemuOpts'
 slug: qemu-apis-qemuopts
 categories: virt
+comments: true
 ---
 
 This post is a short introduction to the QemuOpts API inside

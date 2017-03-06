@@ -4,6 +4,7 @@ title: 'The long story of the query-cpu-model-expansion QEMU interface'
 slug: qemu-cpu-model-probing-story
 categories: virt
 date: 2017-03-06 17:00:00
+comments: true
 ---
 So, finally the [`query-cpu-model-expansion` x86 implementation was merged
 into qemu.git](https://github.com/qemu/qemu/commit/666095c852d32df65b5982fcc8c85332979b7fc1),

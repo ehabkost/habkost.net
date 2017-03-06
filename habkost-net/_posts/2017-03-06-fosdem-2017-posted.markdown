@@ -3,6 +3,7 @@ layout: post
 title: 'Video and slides for FOSDEM 2017 talk: QEMU Internal APIs'
 slug: fosdem-2017-video-slides
 categories: virt
+comments: true
 ---
 The slides and videos for my FOSDEM 2017 talk (<i>QEMU: internal APIs and conflicting world views</i>)
 are available online.

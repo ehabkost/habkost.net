@@ -4,6 +4,7 @@ title:  An incomplete list of QEMU APIs
 date:   2016-11-29 00:51:00 -0200
 categories: virt
 slug: incomplete-list-of-qemu-apis
+comments: true
 ---
 
 Having seen many people (including myself) feeling confused about
