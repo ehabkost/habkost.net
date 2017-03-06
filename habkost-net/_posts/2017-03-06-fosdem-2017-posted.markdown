@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 'Video and slides for FOSDEM 2017 talk: QEMU Internal APIS'
+title: 'Video and slides for FOSDEM 2017 talk: QEMU Internal APIs'
 slug: fosdem-2017-video-slides
 categories: virt
 ---
