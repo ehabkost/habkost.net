@@ -2,6 +2,9 @@
 ## How abstractions inside QEMU (don't) work together
 Eduardo Habkost &lt;ehabkost@redhat.com&gt;
 
+<!-- <p style="font-size: 75%; border-top: solid 1px #444; padding-top: 1em">Slides available at:<br> -->
+<!-- http://habkost.net/talks/fosdem-2017/</p> -->
+
 Note: Hello, thank you for coming. My name is Eduardo. I work for
 Red Hat at the KVM team, mostly on QEMU. I will talk about the
 internal APIs in QEMU.
@@ -18,13 +21,13 @@ internal APIs in QEMU.
 
 Note: These are the contents of this talk. I will first explain a
 little bit of what QEMU does, then present some of the internal
-APIs used inside QEMU to perform its job. Then I will talk about
-how those abstractions work and don't work together.
+APIs used inside QEMU to perform its job. After that, I will talk
+about how those abstractions work and don't work together.
 
 
 ## *Not* included:
 
-* The <i>right</i> way to do something
+* The <i>right way</i> to do something
 * Solutions to issues
 * Every single API in QEMU
 
