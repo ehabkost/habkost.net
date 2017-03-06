@@ -247,7 +247,7 @@ have conflicting world views, and the issues resulting from that.
 
 
 
-**Feedback wanted:** if you have any correction or suggestion to this
-list, please send your comments. You can use the
-[GitHub page for the post](https://github.com/ehabkost/habkost.net/blame/master/habkost-net/_posts/2016-11-28-introduction-qemu-apis.markdown)
-to send comments or suggest changes, or just [e-mail me](mailto:ehabkost@redhat.com).
+**Feedback wanted:** if you have any correction or suggestion to
+this list, please send your comments. You can use the comment
+system at this blog, or just
+[e-mail me](mailto:ehabkost@redhat.com).
