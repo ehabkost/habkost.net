@@ -2,6 +2,8 @@
 ## How abstractions inside QEMU (don't) work together
 Eduardo Habkost &lt;ehabkost@redhat.com&gt;
 
+<p style="font-size: 0.5em; margin-top: 6em;">(hint: press <b>S</b> to see speaker notes)</p>
+
 <!-- <p style="font-size: 75%; border-top: solid 1px #444; padding-top: 1em">Slides available at:<br> -->
 <!-- http://habkost.net/talks/fosdem-2017/</p> -->
 
