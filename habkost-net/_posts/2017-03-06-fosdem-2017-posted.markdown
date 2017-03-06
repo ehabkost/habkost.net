@@ -1,0 +1,17 @@
+---
+layout: post
+title: 'Video and slides for FOSDEM 2017 talk: QEMU Internal APIS'
+slug: fosdem-2017-video-slides
+categories: virt
+---
+The slides and videos for my FOSDEM 2017 talk (<i>QEMU: internal APIs and conflicting world views</i>)
+are available online.
+
+* Slides: [https://habkost.net/talks/fosdem-2017/](https://habkost.net/talks/fosdem-2017/)
+* Video: [https://fosdem.org/2017/schedule/event/iaas_qemintapi/](https://fosdem.org/2017/schedule/event/iaas_qemintapi/)
+
+The subject I tried to cover is large for a 40-minute talk, but I
+think I managed to scratch its surface and give useful examples.
+
+Many thanks for the FOSDEM team of volunteers for the wonderful
+event.
