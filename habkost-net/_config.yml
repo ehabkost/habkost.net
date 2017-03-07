@@ -37,6 +37,7 @@ gems:
 exclude:
   - Gemfile
   - Gemfile.lock
+  - talks/fosdem-2017
 
 disqus:
   shortname: habkost
