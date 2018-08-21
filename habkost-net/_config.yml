@@ -38,8 +38,10 @@ exclude:
   - Gemfile
   - Gemfile.lock
   - talks/fosdem-2017
+  - talks/linuxdevbr-2018
 keep_files:
   - talks/fosdem-2017
+  - talks/linuxdevbr-2018
 
 disqus:
   shortname: habkost
