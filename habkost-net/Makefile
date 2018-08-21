@@ -3,9 +3,9 @@ all: images
 images: qemuopts-example.mmd.png
 
 %.mmd.png: _includes/%.mmd
-	mermaid -p $<
+	npx mmdc -i $< -o $@
 
 _includes/%.mmd.svg: _includes/%.mmd
-	mermaid -s -o _includes $<
+	npx mmdc -i $< -o $@
 
 .PHONY: all images
