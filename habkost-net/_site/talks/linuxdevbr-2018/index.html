@@ -13,19 +13,25 @@
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/zenburn.css">
 		<style>
-		table.layers tr { border: 1px solid black; }
-		table.layers td {
+		table.layers tr { border: none; }
+		table.layers td:first-child {
 			text-align: center;
-			border: 1px solid black;
+			border: 1px solid black !important;
 			color: gray;
 		}
-		table.layers tr.current {
-			background-color: lightblue;
+		table.layers tr.visible td {
+			color: black;
 		}
-		table.layers tr.current td {
+		table.layers tr.hidden td {
+			color: #dddddd;
+			background-color: #dddddd;
+		}
+		table.layers tr.current td:first-child {
+			background-color: lightblue;
 			color: black;
 			font-weight: bold;
 		}
+		code mark, code mark * { color: lightyellow !important; background-color: #3f3f3f !important; font-weight: bold !important; }
 		</style>
 
 		<!-- Printing and PDF exports -->
@@ -67,7 +73,9 @@
 				history: true,
 				controls: false,
 				fragmentInURL: true,
-				margin: 0.025
+				margin: 0.025,
+				width: 1024,
+				height: 768
 			});
 		</script>
 	</body>
