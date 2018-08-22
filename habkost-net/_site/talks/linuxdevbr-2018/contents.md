@@ -454,6 +454,7 @@ Note:
 This is a simplified model, not actual KVM code.
 
 
+
 ## VM Exits
 
 <table class="layers">
@@ -557,7 +558,7 @@ while (1) {
 <li>CPUID instruction</li>
 <li>MSR reads/writes</li>
 <li>APIC (irqchip)</li>
-<li>VVirtio (vhost)</li>
+<li>Virtio (vhost)</li>
 <li><em>etc.</em></li>
 </ul>
 
