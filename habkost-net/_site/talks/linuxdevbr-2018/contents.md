@@ -28,7 +28,7 @@ This is how I will present this talk.  First we we start from the
 # Introduction
 
 <img src="onion.jpg" width="40%">
-<!-- https://www.flickr.com/photos/theilr/4947839133 -->
+<!-- credit: https://www.flickr.com/photos/theilr/4947839133 -->
 
 Note:
 sLet's start peeling the onion and remove all the layers.
@@ -441,19 +441,6 @@ Now we're at the last layer: the hardware itself.
 </table>
 
 
-## VCPU loop
-
-<pre><code class="c" data-trim>
-while (1) {
-   vcpu_run(vcpu);       /* Hardware */
-   handle_vm_exit(vcpu); /* Software */
-}
-</code></pre>
-
-Note:
-This is a simplified model, not actual KVM code.
-
-
 
 ## VM Exits
 
@@ -470,14 +457,30 @@ VM exits are the hardware asking for our help to emulate the Virtual
 Machine.
 
 
+## KVM VCPU loop
+
+<pre><code class="c" data-trim>
+while (1) {
+   vcpu_run(vcpu);       /* Hardware */
+   handle_vm_exit(vcpu); /* Software */
+}
+</code></pre>
+
+Note:
+This is a simplified model, not actual KVM code.
+
+
 ## Causes of VM Exits (summary)
 
 * I/O
 * Reading hardware info (e.g. CPUID)
-* Too complex for hardware
+<!-- * Too complex for hardware -->
 * Host OS tasks:
   * Swapped out memory
   * Process scheduling
+
+Note:
+TODO: mais exemplos aqui!
 
 
 ## Causes of VM Exits (full)
@@ -529,7 +532,7 @@ system caused a VM exit.
 </table>
 
 
-## Userspace exits
+## QEMU VCPU loop
 
 <pre><code class="c" data-trim data-noescape>
 vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, ...);
@@ -571,6 +574,27 @@ system caused a VM exit.
 
 
 ## The virtual hardware
+
+<div style="display: flex;">
+
+<div style="flex: 1;">
+
+<h3>KVM</h3>
+
+<img src="cpu.jpg" style="border: none; width: 80%;">
+<!-- credit: https://pixabay.com/pt/cpu-processador-macro-caneta-pin-564771/ -->
+</div>
+
+<div style="flex: 1;">
+
+<h3>QEMU</h3>
+
+<img src="computer.png" style="border: none; width: 75%;">
+<!-- credit: https://pt.m.wikipedia.org/wiki/Ficheiro:Personal_computer,_exploded.svg -->
+</div>
+
+</div>
+
 
 * CPU (CPUID + features)
 * RAM
@@ -732,6 +756,31 @@ Note:
 TODO: mention libosinfo/etc
 
 
+
+# References
+
+
+
 # Thank You
 
+https://habkost.net/talks/linuxdevbr-2018/
+
+
+# Legal Notices
+
+<p>Image credits:</p>
+<ul>
+<li>"layers" by theilr: https://www.flickr.com/photos/theilr/4947839133<br>
+    (<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC BY-SA 2.0</a>)</li>
+<li>CPU: https://pixabay.com/pt/cpu-processador-macro-caneta-pin-564771/<br>
+    (<a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt">CC0 1.0</a>)</li>
+<li>Desktop computer: https://pt.m.wikipedia.org/wiki/Ficheiro:Personal_computer,_exploded.svg<br>
+    (a href="https://creativecommons.org/licenses/by-sa/3.0/deed.pt">CC BY-SA 3.0</a>)</li>
+</ul>
+
 Note:
+TODO:
+* "o que é management software?"
+* "o que o QEMU faz?" "o que o KVM faz?"
+* retornar para linha de comando e XML, mostrar exemplos
+* pelo menos 1 exemplo para cada camada
