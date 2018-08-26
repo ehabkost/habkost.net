@@ -3,9 +3,10 @@
 Eduardo Habkost &lt;ehabkost@redhat.com&gt;
 
 Note:
-TODO list:
-* Which layer?
-* Mention other layers
+TODO:
+* Diagram multiple hosts
+* Diagram live-migration + host features
+* Glossário
 
 Details to mention:
 * Live-migration and guest ABI
@@ -27,20 +28,26 @@ This is how I will present this talk.  First we we start from the
 
 # Introduction
 
+
+## A virtual machine
+
+<img src="virtual-machine.png" style="width: 75%; border: none;">
+
+
+## The Layers
+
 <img src="onion.jpg" width="40%">
 <!-- credit: https://www.flickr.com/photos/theilr/4947839133 -->
 
 Note:
-sLet's start peeling the onion and remove all the layers.
+Let's start peeling the onion and remove all the layers.
 This section can also be called "how to peel an onion"
-
-TODO: Flickr credit
 
 
 ## First layer: the user interface
 
 <table class="layers">
-<tr class="current"><td>virt-manager</td></tr>
+<tr class="current"><td>management app</td></tr>
 <tr class="hidden"><td>libvirt</td></tr>
 <tr class="hidden"><td>QEMU</td></tr>
 <tr class="hidden"><td>KVM (kernel)</td></tr>
@@ -98,7 +105,7 @@ the hard disk.
 <!-- ## Next layer:  -->
 <!--   -->
 <!-- <table class="layers">  -->
-<!-- <tr><td>virt-manager</td></tr>  -->
+<!-- <tr><td>management app</td></tr>  -->
 <!-- <tr class="current"><td>virtinst</td></tr>  -->
 <!-- </table>  -->
 <!--   -->
@@ -128,7 +135,7 @@ the hard disk.
 ## Next layer:
 
 <table class="layers">
-<tr><td>virt-manager</td></tr>
+<tr><td>management app</td></tr>
 <tr class="current"><td>libvirt</td></tr>
 <tr class="hidden"><td>QEMU</td></tr>
 <tr class="hidden"><td>KVM (kernel)</td></tr>
@@ -136,7 +143,7 @@ the hard disk.
 </table>
 
 
-## libvirt interface
+## libvirt interface (XML)
 
 <pre style="font-size: 0.25em"><code data-trim class="xml">
 <domain type="kvm">
@@ -311,7 +318,7 @@ this layer.
 ## Next layer:
 
 <table class="layers">
-<tr><td>virt-manager</td></tr>
+<tr><td>management app</td></tr>
 <tr><td>libvirt</td></tr>
 <tr class="current"><td>QEMU</td></tr>
 <tr class="hidden"><td>KVM (kernel)</td></tr>
@@ -319,7 +326,7 @@ this layer.
 </table>
 
 
-## QEMU interface
+## QEMU interface (command-line)
 
 <pre style="font-size: 0.55em"><code data-trim>
 # /usr/bin/qemu-kvm \
@@ -378,13 +385,33 @@ this layer.
 </code></pre>
 
 Note:
-TODO: mention QMP
+O QEMU é uma ferramenta de linha de comando.
+
+
+## QEMU interface (QMP)
+
+<pre><code data-trim class="lang-js">
+⇒ { "execute": "device_add",
+     "arguments": { "mac": "01:02:03:04:05:06",
+                    "driver": "e1000" } }
+⇐ { "return": {} }
+⇒ { "execute": "query-cpus",
+     "arguments": {} }
+⇐ { "return": [{ "halted": false, "pc": 133130950,
+                  "current": true,
+                  "qom_path": "/machine/unattached/device[0]",
+                  "thread_id": 22230, "arch": "x86",
+                  "CPU": 0 } ] }
+⇒ { "execute": "query-kvm",
+     "arguments": {} }
+⇐ { "return": { "enabled": true, "present": true } }
+</code></pre>
 
 
 ## Next layer:
 
 <table class="layers">
-<tr><td>virt-manager</td></tr>
+<tr><td>management app</td></tr>
 <tr><td>libvirt</td></tr>
 <tr><td>QEMU (userspace)</td></tr>
 <tr class="current"><td>KVM (kernel)</td></tr>
@@ -420,7 +447,7 @@ the VCPU in a loop.
 ## Next layer:
 
 <table class="layers">
-<tr><td>virt-manager</td></tr>
+<tr><td>management app</td></tr>
 <tr><td>libvirt</td></tr>
 <tr><td>QEMU (userspace)</td></tr>
 <tr><td>KVM (kernel)</td></tr>
@@ -441,149 +468,27 @@ Now we're at the last layer: the hardware itself.
 </table>
 
 
-
-## VM Exits
+## The Layers
 
 <table class="layers">
-<tr><td>virt-manager</td></tr>
-<tr><td>libvirt</td></tr>
-<tr><td>QEMU (userspace)</td></tr>
-<tr class="current"><td>KVM (kernel)</td><td class="fragment" data-fragment-index="2" style="border: none !important; text-align: left;">— I've got this!</td></tr>
-<tr class="visible"><td>Hardware (CPU)</td><td class="fragment" data-fragment-index="1" style="border: none !important; text-align: left;">— Please help!</td></tr>
+<tr class="visible"><td>management app</td></tr>
+<tr class="visible"><td>libvirt</td></tr>
+<tr class="visible"><td>QEMU (userspace)</td></tr>
+<tr class="visible"><td>KVM (kernel)</td></tr>
+<tr class="visible"><td>Hardware (CPU)</td></tr>
 </table>
 
 Note:
-VM exits are the hardware asking for our help to emulate the Virtual
-Machine.
 
 
-## KVM VCPU loop
+## The virtual hardware
 
-<pre><code class="c" data-trim>
-while (1) {
-   vcpu_run(vcpu);       /* Hardware */
-   handle_vm_exit(vcpu); /* Software */
-}
-</code></pre>
-
-Note:
-This is a simplified model, not actual KVM code.
-
-
-## Causes of VM Exits (summary)
-
-* I/O
-* Reading hardware info (e.g. CPUID)
-<!-- * Too complex for hardware -->
-* Host OS tasks:
-  * Swapped out memory
-  * Process scheduling
-
-Note:
-TODO: mais exemplos aqui!
-
-
-## Causes of VM Exits (full)
-
-Instructions: CPUID, GETSEC, INVD, XSETBV, INVEPT, INVVPID,
-VMCALL, VMCLEAR, VMLAUNCH, VMPTRLD, VMPTRST, VMRESUME, VMXOFF,
-and VMXON. Conditionally: CLTS, ENCLS, HLT, IN, OUT, INVLPG,
-INVPCID, LGDT, LIDT, LLDT, LTR, SGDT, SIDT, SLDT, STR, LMSW,
-MONITOR, MOV from CR3, MOV from CR8, MOV to CR0, MOV to CR3, MOV
-to CR4, MOV to CR8, MOV DR, MWAIT, PAUSE, RDMSR, RDPMC, RDRAND,
-RDSEED, RDTSC, RDTSCP, RSM, VMREAD, VMWRITE, WBINVD, WRMSR,
-XRSTORS, XSAVES. Exceptions, Triple faults, External interrupts,
-NMIs, INIT signal, SIPIs, Task switches, SMIs, VMX-preemption
-timer
-
-
-## Nobody likes VM Exits
-
-## They are expensive <!-- .element: class="fragment" -->
-
-## All layers try to minimize them <!-- .element: class="fragment" -->
-
-
-## Minimizing VM Exits
-
-* Hardware:
-  * Software MMU → Hardware MMU
-  * APICv
-* Software:
-  * Paravirtualization: KVM Clock, Virtio, etc.
-  * Fine tuning / configuration
-
-Note:
-Virtualization hardware and software is always evolving to avoid
-unnecessary VM Exits.  The most notable example was the
-introduction of hardware-assisted MMU virtualization.  In the
-past, all page table operations done by the guest operating
-system caused a VM exit.
-
-
-## Userspace exits
-
-<table class="layers">
-<tr><td>virt-manager</td></tr>
-<tr><td>libvirt</td></tr>
-<tr class="current"><td>QEMU (userspace)</td><td class="fragment" data-fragment-index="2" style="border: none !important; text-align: left;">— I've got this!</td></tr>
-<tr class="visible"><td>KVM (kernel)</td><td class="fragment" data-fragment-index="1" style="border: none !important; text-align: left;">— Please help!</td></tr>
-<tr><td>Hardware (CPU)</td></tr>
-</table>
-
-
-## QEMU VCPU loop
-
-<pre><code class="c" data-trim data-noescape>
-vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, ...);
-struct kvm_run *run = mmap(..., <b>vcpufd</b>, 0);
-while (1) {
-    ioctl(vcpufd, <mark>KVM_RUN</mark>, ...);
-    switch (<mark>run->exit_reason</mark>) {
-        <mark>/* handle VM exit */</mark>
-    }
-}
-</code></pre>
-
-
-## Nobody likes userpace exits
-
-## They are expensive <!-- .element: class="fragment" -->
-
-## All layers try to minimize them <!-- .element: class="fragment" -->
-
-
-## Minimizing userspace exits
-
-<p>In-kernel emulation:</p>
-
-<ul>
-<li>CPUID instruction</li>
-<li>MSR reads/writes</li>
-<li>APIC (irqchip)</li>
-<li>Virtio (vhost)</li>
-<li><em>etc.</em></li>
-</ul>
-
-Note:
-Virtualization hardware and software is always evolving to avoid
-unnecessary VM Exits.  The most notable example was the
-introduction of hardware-assisted MMU virtualization.  In the
-past, all page table operations done by the guest operating
-system caused a VM exit.
+<img src="qemu-kvm.png" style="width: 75%; border: none;">
 
 
 ## The virtual hardware
 
 <div style="display: flex;">
-
-<div style="flex: 1;">
-
-<h3>KVM</h3>
-
-<img src="cpu.jpg" style="border: none; width: 80%;">
-<!-- credit: https://pixabay.com/pt/cpu-processador-macro-caneta-pin-564771/ -->
-</div>
 
 <div style="flex: 1;">
 
@@ -593,19 +498,25 @@ system caused a VM exit.
 <!-- credit: https://pt.m.wikipedia.org/wiki/Ficheiro:Personal_computer,_exploded.svg -->
 </div>
 
+<div style="flex: 1;">
+
+<h3>KVM</h3>
+
+<img src="cpu.jpg" style="border: none; width: 80%;">
+<!-- credit: https://pixabay.com/pt/cpu-processador-macro-caneta-pin-564771/ -->
 </div>
 
-
-* CPU (CPUID + features)
-* RAM
-* ROM/Firmware (BIOS, ACPI, etc.)
-* I/O device emulation (PCI, USB, ISA)
-* Communication (networking, block storage, keyboard/video/mouse)
+</div>
 
 
 ## Userspace (QEMU) control the virtual hardware
 
 <b>All</b> hardware emulation is configured by userspace
+
+Note:
+Um ponto relevante a se lembrar é o seguinte: o KVM e o hardware
+provém apenas os mecanismos para utilizar o hardware, mas
+quem vai configurar e controlar o processo todo é userspace.
 
 
 ## Virtual hardware configuration
@@ -667,6 +578,218 @@ system caused a VM exit.
 </code></pre>
 
 
+# From guest code to device emulation
+
+One example
+
+
+## Terminology
+
+* Inside the VM:
+  * **GVA**: Guest Virtual Address
+  * **GPA**: Guest Physical Address
+  * Guest page tables map GVAs to GPAs
+* In the host:
+  * **HPA**: Host Physical Address
+  * **GVA**: Host Physical Address
+
+
+## 1. Launch guest code
+
+1. Userspace allocates memory for guest (HVA)
+2. `ioctl(KVM_SET_USER_MEMORY_REGION, ...)`
+   * Input: GPA -> HVA mapping
+  * GPA -> HPA mapping is built
+3. `ioctl(vcpufd, KVM_RUN, ...);`
+  *  `VMLAUNCH`/`VMRESUME` (VMX) or `VMRUN` (AMD)
+
+Note: Os passos básicos para se rodar código em uma VCPU são os
+seguintes: primeiro o código em userspace precisa alocar memória
+para a máquina virtual.  Em seguida as áreas de memória são
+registradas com o KVM.  Com isso, o QEMU pode pedir para o KVM
+rodar o código da CPU usando.  Já dentro do kernel, o KVM vai
+inicializar as estruturas necessárias para o hardware, e vai
+iniciar a execução do código do guest.
+
+
+## 2. Guest code runs
+
+...until it stops:
+
+<pre class="fragment"><code class="c" data-noescape>  <mark>outw</mark>(val, uhci->io_addr + reg);</code></pre>
+
+Note: Uma vez rodando, o o próprio hardware vai executar as
+instruções da máquina virtual.  Até chegar em alguma operação que
+o hardware não pode cuidar sozinho.
+
+Por exemplo, quando o guest tenta interagir com o hardware.  O
+exemplo na tela é uma linha de código de driver USB do Linux.
+
+
+## 3. VM Exits
+
+<table class="layers" class="fragment" data-fragment-index="1">
+<tr><td>management app</td></tr>
+<tr><td>libvirt</td></tr>
+<tr><td>QEMU (userspace)</td></tr>
+<tr class="current"><td>KVM (kernel)</td><td class="fragment" data-fragment-index="3" style="border: none !important; text-align: left;">— I've got this!</td></tr>
+<tr class="visible"><td>Hardware (CPU)</td><td class="fragment" data-fragment-index="2" style="border: none !important; text-align: left;">— Please help!<br><code>EXIT_REASON_IO_INSTRUCTION</code></td></tr>
+</table>
+
+Note: Nesse momento acontece o que chamamos de "VM exit".  Uma
+"VM exit" é quando o hardware sai do modo de execução de máquina
+virtual e retorna ao sistema operacional hospedeiro.
+
+TODO: show VM exit code.
+
+
+## 4. Software emulation (KVM)
+
+<pre><code class="c" data-trim>
+while (1) {
+  vcpu_run(vcpu);        /* Hardware */
+  r = handle_exit(vcpu); /* Software emulation */
+  if (r)
+    break;
+}
+</code></pre>
+
+Note: Dentro do KVM, o modelo de execução é esse: o KVM vai rodar
+o código, e cada vez que houver um VM exit, ele vai tentar emular
+a operação por software dentro do próprio KVM.  Algumas vezes
+isso é possível, em outras vezes não.  Se o KVM for capaz de
+emular a operação, ele retorna o loop e continua executando
+código da VM.  Se ele não conseguir...
+
+
+## 4. Exit to userspace
+
+<table class="layers" class="fragment" data-fragment-index="1">
+<tr><td>management app</td></tr>
+<tr><td>libvirt</td></tr>
+<tr class="current"><td>QEMU (userspace)</td><td class="fragment" data-fragment-index="3" style="border: none !important; text-align: left;">— I've got this!</td></tr>
+<tr class="visible"><td>KVM (kernel)</td><td class="fragment" data-fragment-index="2" style="border: none !important; text-align: left;">— Please help!<br><code>vcpu->run.exit_reason = KVM_EXIT_IO</code></td></tr>
+<tr><td>Hardware (CPU)</td></tr>
+</table>
+
+Note: vai acontecer algo parecido com o que ocorre em uma VM exit.  O kernel vai pedir ajuda para userspace lidar com a operação.
+
+TODO: show exit code.
+
+
+## 5. QEMU VCPU loop
+
+<pre><code class="c" data-trim data-noescape>
+vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, ...);
+struct kvm_run *run = mmap(..., <b>vcpufd</b>, 0);
+while (1) {
+    ioctl(vcpufd, <mark>KVM_RUN</mark>, ...);
+    switch (<mark>run->exit_reason</mark>) {
+        <mark>/* handle VM exit */</mark>
+    }
+}
+</code></pre>
+
+Note: O método mais básico para tratar uma operação da VM em
+userspace é simplesmente retornar da `ioctl` `KVM_RUN`, após
+preencher algumas informações em uma estrutura de dados.  Mas
+note que esse não é o *único* método.  Existem meios de userspace
+receber as notificações em um file descriptor chamado `ioeventfd`
+em outra thread.
+
+
+## 6. QEMU I/O emulation (KVM exit)
+
+<pre><code class="c" data-trim data-noescape>
+        switch (run->exit_reason) {
+        case KVM_EXIT_IO:
+            <mark>kvm_handle_io</mark>(run->io.port, attrs,
+                          (uint8_t *)run + run->io.data_offset,
+                          run->io.direction,
+                          run->io.size,
+                          run->io.count);
+</code></pre>
+
+
+## 6. QEMU I/O emulation (implementation)
+
+<pre><code class="c" data-trim data-noescape>
+static void <mark>uhci_port_write</mark>(void *opaque, hwaddr addr,
+                            uint64_t val, unsigned size)
+{
+    UHCIState *s = opaque;
+
+    trace_usb_uhci_mmio_writew(addr, val);
+
+    switch(addr) {
+    case 0x00:
+        if ((val & UHCI_CMD_RS) && !(s->cmd & UHCI_CMD_RS)) {
+            /* start frame processing */
+            trace_usb_uhci_schedule_start();
+            s->expire_time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
+                (NANOSECONDS_PER_SECOND / FRAME_TIMER_FREQ);
+            timer_mod(s->frame_timer, s->expire_time);
+            s->status &= ~UHCI_STS_HCHALTED;
+        } else if (!(val & UHCI_CMD_RS)) {
+            s->status |= UHCI_STS_HCHALTED;
+        }
+</code></pre>
+
+Note:
+
+
+## Causes of VM Exits (full)
+
+Instructions: CPUID, GETSEC, INVD, XSETBV, INVEPT, INVVPID,
+VMCALL, VMCLEAR, VMLAUNCH, VMPTRLD, VMPTRST, VMRESUME, VMXOFF,
+and VMXON. Conditionally: CLTS, ENCLS, HLT, IN, OUT, INVLPG,
+INVPCID, LGDT, LIDT, LLDT, LTR, SGDT, SIDT, SLDT, STR, LMSW,
+MONITOR, MOV from CR3, MOV from CR8, MOV to CR0, MOV to CR3, MOV
+to CR4, MOV to CR8, MOV DR, MWAIT, PAUSE, RDMSR, RDPMC, RDRAND,
+RDSEED, RDTSC, RDTSCP, RSM, VMREAD, VMWRITE, WBINVD, WRMSR,
+XRSTORS, XSAVES. Exceptions, Triple faults, External interrupts,
+NMIs, INIT signal, SIPIs, Task switches, SMIs, VMX-preemption
+timer
+
+
+## Nobody likes VM Exits
+
+## They are expensive <!-- .element: class="fragment" -->
+
+## All layers try to minimize them <!-- .element: class="fragment" -->
+
+
+## Minimizing VM Exits
+
+* Software:
+  * Paravirtualization: KVM Clock, Virtio, etc.
+  * Fine tuning / configuration
+  * In-kernel emulation (APIC, MSRs, vhost)
+  * *etc.*
+* Hardware:
+  * Software MMU → Hardware MMU
+  * APICv
+  * *etc.*
+
+Note:
+Virtualization hardware and software is always evolving to avoid
+unnecessary VM Exits.  The most notable example was the
+introduction of hardware-assisted MMU virtualization.  In the
+past, all page table operations done by the guest operating
+system caused a VM exit.
+
+
+# Guest ABI and VM management
+
+
+<img src="multi-host-mgmt-vm1.png" style="border: none;">
+<!-- .slide: data-transition="slide-in none-out" -->
+
+
+<img src="multi-host-mgmt-vm2.png" style="border: none;">
+<!-- .slide: data-transition="none-in slide-out" -->
+
+
 ## Guest ABI guarantees
 
 Virtual hardware stays the same:
@@ -684,33 +807,6 @@ This is why the QEMU command-line is so huge: everything that is
 visible to the guest operating system is encoded there somehow.
 
 
-## Guest ABI mechanism
-
-<pre><code data-trim data-noescape>
-# /usr/bin/qemu-kvm  \
-  <mark>-machine pc-q35-2.12</mark> ...
-</code></pre>
-
-
-## Guest ABI exception (1):
-## machine-type aliases
-
-<pre><code data-trim data-noescape>
-# /usr/bin/qemu-kvm -machine <mark>pc</mark> ...
-# /usr/bin/qemu-kvm -machine <mark>q35</mark> ...
-</code></pre>
-
-
-## Guest ABI exception (2):
-## host CPU "passthrough"
-
-<pre><code data-trim data-noescape>
-# /usr/bin/qemu-kvm -cpu <mark>host</mark> ...
-</code></pre>
-
-Exposes all supported host CPU features
-
-
 ## Desirable guest ABI changes
 
 * Examples: <!-- .element: class="fragment" -->
@@ -718,15 +814,6 @@ Exposes all supported host CPU features
   * Bug fixes (e.g. CPU vulnerabilities) <!-- .element: class="fragment" -->
 * Explicit configuration change always required <!-- .element: class="fragment" -->
 * Work in progress to make that easier <!-- .element: class="fragment" -->
-
-
-## Choosing a VM configuration
-
-What if...
-<ul>
-<li class="fragment">...the VM is **migrated** later?"</li>
-<li class="fragment">...the new host is **less capable** than the current one?</li>
-</ul>
 
 
 ## Choosing a VM configuration
@@ -759,6 +846,7 @@ TODO: mention libosinfo/etc
 
 # References
 
+TODO: add references
 
 
 # Thank You
