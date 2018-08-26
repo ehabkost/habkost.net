@@ -17,4 +17,4 @@ _site/package-lock.json
 _site/package.json
 _site/posts/
 _site/virt-feed.xml
-
+node_modules
