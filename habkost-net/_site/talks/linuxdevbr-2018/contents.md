@@ -809,41 +809,29 @@ Elas são caras, elas demoram muito para ser tratadas.
 Então todas as camadas da pilha tentam fazer alguma coisa para
 diminuir a frequência com que isso ocorre.
 
+Não vai ser possível entrar em detalhes nessa palestra sobre como
+isso é feito, mas isso explica várias das complexidades na
+interface entre o KVM e o hardware, e entre o QEMU e o KVM.
+
 
 ## Userspace (QEMU) controls the virtual hardware
 
 <b>All</b> hardware emulation is configured by userspace
 
-Note: Um ponto relevante a se lembrar é o seguinte: mesmo quando
-a gente toma determinados atalhos para evitar VM exits, o KVM e o
-hardware físico provêm apenas os mecanismos para utilizar o
-hardware, mas quem vai configurar e controlar o processo todo
-(inclusive configurar como a própria VCPU vai funcionar) é o
-userspace (no caso, o QEMU).
+Note: Um ponto relevante a se lembrar é o seguinte:
+mesmo quando a gente toma determinados atalhos para evitar VM
+exits, o KVM e o hardware físico oferecem apenas os mecanismos para
+utilizar o hardware, mas quem vai configurar e controlar o
+processo todo (inclusive configurar como a própria VCPU vai
+funcionar) é o userspace (no caso, o QEMU).
 
 
 # Guest ABI and VM management
 
 
-<img src="multi-host-mgmt-vm1.png" style="border: none;">
-<!-- .slide: data-transition="slide-in none-out" -->
-
-Note: vou tentar demonstrar quando isso pode ser tornar um
-problema. Suponha que você tenha um cluster com vários hosts, mas
-um deles tem algumas features a mais. Se você criar uma VM nesse
-host com as features A e B e tentar migrar para um outro host que
-não tem uma delas, você não vai conseguir. Ou o sistema bloqueia
-a migração completamente, ou a configuração da VM precisa ser
-atualizada.
-
-
-<img src="multi-host-mgmt-vm2.png" style="border: none;">
-<!-- .slide: data-transition="none-in slide-out" -->
-
-
 ## libvirt/QEMU Guest ABI guarantees
 
-Virtual hardware stays the same:
+Virtual hardware **stays the same**:
 <ul>
 <li class="fragment">After host <b>software</b> changes (QEMU, kernel, libvirt)</li>
 <li class="fragment">After host <b>hardware</b> changes</li>
@@ -862,6 +850,243 @@ seja a mesma.
 É por isso que o XML da libvirt e a linha de comando do QEMU são
 tão grandes: tudo que é visível para o software guest está
 codificado de uma forma ou de outra no XML e na linha de comando.
+
+
+## libvirt VM configuration (XML)
+
+<pre style="font-size: 0.25em"><code data-trim class="xml">
+<domain type="kvm">
+  <name>fedora28</name>
+  <uuid>34e74d0e-2de0-4c0d-b6f7-4ad1ac1262b7</uuid>
+  <memory>1048576</memory>
+  <currentMemory>1048576</currentMemory>
+  <vcpu>2</vcpu>
+  <os>
+    <type arch="x86_64">hvm</type>
+    <kernel>/var/lib/libvirt/boot/virtinst-vmlinuz.SqGhHd</kernel>
+    <initrd>/var/lib/libvirt/boot/virtinst-initrd.img.Ix7vKA</initrd>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state="off"/>
+  </features>
+  <cpu mode="custom" match="exact">
+    <model>Skylake-Client</model>
+  </cpu>
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+  </clock>
+  <on_reboot>destroy</on_reboot>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+    <emulator>/usr/bin/qemu-kvm</emulator>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="qcow2"/>
+      <source file="/var/lib/libvirt/images/fedora28.qcow2"/>
+      <target dev="vda" bus="virtio"/>
+    </disk>
+    <disk type="file" device="cdrom">
+      <driver name="qemu" type="raw"/>
+      <source file="/home/ehabkost/Downloads/Fedora-Workstation-Live-x86_64-28-1.1.iso"/>
+      <target dev="hda" bus="ide"/>
+      <readonly/>
+    </disk>
+    <controller type="usb" index="0" model="ich9-ehci1"/>
+    <controller type="usb" index="0" model="ich9-uhci1">
+      <master startport="0"/>
+    </controller>
+    <controller type="usb" index="0" model="ich9-uhci2">
+      <master startport="2"/>
+    </controller>
+    <controller type="usb" index="0" model="ich9-uhci3">
+      <master startport="4"/>
+    </controller>
+    <interface type="network">
+      <source network="default"/>
+      <mac address="52:54:00:22:19:06"/>
+      <model type="virtio"/>
+    </interface>
+    <input type="tablet" bus="usb"/>
+    <graphics type="spice" port="-1" tlsPort="-1" autoport="yes">
+      <image compression="off"/>
+    </graphics>
+    <console type="pty"/>
+    <channel type="unix">
+      <source mode="bind"/>
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
+    </channel>
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0"/>
+    </channel>
+    <sound model="ich6"/>
+    <video>
+      <model type="qxl"/>
+    </video>
+    <redirdev bus="usb" type="spicevmc"/>
+    <redirdev bus="usb" type="spicevmc"/>
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>
+<domain type="kvm">
+  <name>fedora28</name>
+  <uuid>34e74d0e-2de0-4c0d-b6f7-4ad1ac1262b7</uuid>
+  <memory>1048576</memory>
+  <currentMemory>1048576</currentMemory>
+  <vcpu>2</vcpu>
+  <os>
+    <type arch="x86_64">hvm</type>
+    <boot dev="hd"/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state="off"/>
+  </features>
+  <cpu mode="custom" match="exact">
+    <model>Skylake-Client</model>
+  </cpu>
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+  </clock>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+    <emulator>/usr/bin/qemu-kvm</emulator>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="qcow2"/>
+      <source file="/var/lib/libvirt/images/fedora28.qcow2"/>
+      <target dev="vda" bus="virtio"/>
+    </disk>
+    <disk type="file" device="cdrom">
+      <target dev="hda" bus="ide"/>
+      <readonly/>
+    </disk>
+    <controller type="usb" index="0" model="ich9-ehci1"/>
+    <controller type="usb" index="0" model="ich9-uhci1">
+      <master startport="0"/>
+    </controller>
+    <controller type="usb" index="0" model="ich9-uhci2">
+      <master startport="2"/>
+    </controller>
+    <controller type="usb" index="0" model="ich9-uhci3">
+      <master startport="4"/>
+    </controller>
+    <interface type="network">
+      <source network="default"/>
+      <mac address="52:54:00:22:19:06"/>
+      <model type="virtio"/>
+    </interface>
+    <input type="tablet" bus="usb"/>
+    <graphics type="spice" port="-1" tlsPort="-1" autoport="yes">
+      <image compression="off"/>
+    </graphics>
+    <console type="pty"/>
+    <channel type="unix">
+      <source mode="bind"/>
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
+    </channel>
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0"/>
+    </channel>
+    <sound model="ich6"/>
+    <video>
+      <model type="qxl"/>
+    </video>
+    <redirdev bus="usb" type="spicevmc"/>
+    <redirdev bus="usb" type="spicevmc"/>
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>
+</code></pre>
+
+
+## QEMU VM configuration (command-line)
+
+<pre style="font-size: 0.55em"><code data-trim>
+# /usr/bin/qemu-kvm \
+> -name guest=fedora28,debug-threads=on \
+> -S \
+> -object secret,id=masterKey0,format=raw,file=/var/lib/libvirt/qemu/domain-41-fedora28/master-key.aes \
+> -machine pc-i440fx-2.10,accel=kvm,usb=off,vmport=off,dump-guest-core=off \
+> -cpu Skylake-Client \
+> -m 1024 \
+> -realtime mlock=off \
+> -smp 2,sockets=2,cores=1,threads=1 \
+> -uuid f79dd672-248b-4598-9c4a-e1090235f132 \
+> -no-user-config \
+> -nodefaults \
+> -chardev socket,id=charmonitor,path=/var/lib/libvirt/qemu/domain-41-fedora28/monitor.sock,server,nowait \
+> -mon chardev=charmonitor,id=monitor,mode=control \
+> -rtc base=utc,driftfix=slew \
+> -global kvm-pit.lost_tick_policy=delay \
+> -no-hpet \
+> -no-reboot \
+> -global PIIX4_PM.disable_s3=1 \
+> -global PIIX4_PM.disable_s4=1 \
+> -boot strict=on \
+> -kernel /var/lib/libvirt/boot/virtinst-vmlinuz.dPrnLR \
+> -initrd /var/lib/libvirt/boot/virtinst-initrd.img.hrYI8n \
+> -device ich9-usb-ehci1,id=usb,bus=pci.0,addr=0x5.0x7 \
+> -device ich9-usb-uhci1,masterbus=usb.0,firstport=0,bus=pci.0,multifunction=on,addr=0x5 \
+> -device ich9-usb-uhci2,masterbus=usb.0,firstport=2,bus=pci.0,addr=0x5.0x1 \
+> -device ich9-usb-uhci3,masterbus=usb.0,firstport=4,bus=pci.0,addr=0x5.0x2 \
+> -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6 \
+> -drive file=/var/lib/libvirt/images/fedora28.qcow2,format=qcow2,if=none,id=drive-virtio-disk0 \
+> -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x7,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 \
+> -drive file=/home/ehabkost/Downloads/Fedora-Workstation-Live-x86_64-28-1.1.iso,format=raw,if=none,id=drive-ide0-0-0,readonly=on \
+> -device ide-cd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-0 \
+> -netdev tap,fd=26,id=hostnet0,vhost=on,vhostfd=28 \
+> -device virtio-net-pci,netdev=hostnet0,id=net0,mac=52:54:00:ee:2f:dd,bus=pci.0,addr=0x3 \
+> -chardev pty,id=charserial0 \
+> -device isa-serial,chardev=charserial0,id=serial0 \
+> -chardev socket,id=charchannel0,path=/var/lib/libvirt/qemu/channel/target/domain-41-fedora28/org.qemu.guest_agent.0,server,nowait \
+> -device virtserialport,bus=virtio-serial0.0,nr=1,chardev=charchannel0,id=channel0,name=org.qemu.guest_agent.0 \
+> -chardev spicevmc,id=charchannel1,name=vdagent \
+> -device virtserialport,bus=virtio-serial0.0,nr=2,chardev=charchannel1,id=channel1,name=com.redhat.spice.0 \
+> -device usb-tablet,id=input0,bus=usb.0,port=1 \
+> -spice port=5900,addr=127.0.0.1,disable-ticketing,image-compression=off,seamless-migration=on \
+> -device qxl-vga,id=video0,ram_size=67108864,vram_size=67108864,vram64_size_mb=0,vgamem_mb=16,max_outputs=1,bus=pci.0,addr=0x2 \
+> -device intel-hda,id=sound0,bus=pci.0,addr=0x4 \
+> -device hda-duplex,id=sound0-codec0,bus=sound0.0,cad=0 \
+> -chardev spicevmc,id=charredir0,name=usbredir \
+> -device usb-redir,chardev=charredir0,id=redir0,bus=usb.0,port=2 \
+> -chardev spicevmc,id=charredir1,name=usbredir \
+> -device usb-redir,chardev=charredir1,id=redir1,bus=usb.0,port=3 \
+> -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x8 \
+> -object rng-random,id=objrng0,filename=/dev/urandom \
+> -device virtio-rng-pci,rng=objrng0,id=rng0,bus=pci.0,addr=0x9 \
+> -msg timestamp=on
+</code></pre>
+
+
+<img src="multi-host-mgmt-vm1.png" style="border: none;">
+<!-- .slide: data-transition="slide-in none-out" -->
+
+Note: vou tentar demonstrar quando isso pode ser tornar um
+problema. Suponha que você tenha um cluster com vários hosts, mas
+um deles tem algumas features a mais. Se você criar uma VM nesse
+host com as features A e B e tentar migrar para um outro host que
+não tem uma delas, você não vai conseguir. Ou o sistema bloqueia
+a migração completamente, ou a configuração da VM precisa ser
+atualizada.
+
+
+<img src="multi-host-mgmt-vm2.png" style="border: none;">
+<!-- .slide: data-transition="none-in slide-out" -->
 
 
 ## Desirable guest ABI changes
@@ -901,7 +1126,7 @@ decisões.
 
 ## Extra Information
 
-Things I didn't cover:
+Not covered:
 
 * Live migration
 * `ioeventfd`
@@ -909,9 +1134,8 @@ Things I didn't cover:
 * `libosinfo`
 * Other management apps: OpenStack, oVirt, Boxes
 * QEMU machine-types
-* Future work:
-  * Better interfaces (QMP) for probing for host hardware/software capabilities
-  * Better interfaces to warn the user about unsafe or inefficient configurations
+* Probing for host hardware/software capabilities
+* Warning about unsafe or inefficient configurations
 
 
 # References (1/2)
