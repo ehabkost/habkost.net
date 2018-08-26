@@ -1,6 +1,8 @@
 # Building a Virtual CPU from the Ground Up
 ## KVM and the layers above it
-Eduardo Habkost &lt;ehabkost@redhat.com&gt;
+Eduardo Habkost &lt;ehabkost@redhat.com&gt;<br>
+<br>
+<a href="https://linuxdev-br.net/">linuxdev-br 2018</a>
 
 Note:
 TODO:
@@ -21,8 +23,11 @@ Details to mention:
 * Introduction (quick dive in)
 * Emulating a virtual machine (slow ascent)
 
-Note:
-This is how I will present this talk.  First we we start from the 
+Note: Nessa palestra eu vou tentar não focar em um componente
+específico do sistema de virtualização, mas em todas as camadas
+envolvidas. Vou começar com uma introdução rápida, mergulhando e
+explicando rapidamente os componentes envolvidos. Depois da
+introdução vou detalhar melhor como algumas operações funcionam.
 
 
 
@@ -33,15 +38,23 @@ This is how I will present this talk.  First we we start from the
 
 <img src="virtual-machine.png" style="width: 75%; border: none;">
 
+Note: Esse diagrama exemplifica algumas das partes de uma máquina
+virtual.  Uma máquina virtual permite rodar outros sistemas
+operacionais num computador host, de forma controlada e isolada
+do resto do hardware real. Você tem as CPUs virtuais (ou VCPUs),
+dispositivos virtuais variados. O software que roda dentro da
+máquina virtual é chamado de "guest". O hardware real e o sistema
+operacional que roda no hardware real e controla a máquina
+virtual.
+
 
 ## The Layers
 
 <img src="onion.jpg" width="40%">
 <!-- credit: https://www.flickr.com/photos/theilr/4947839133 -->
 
-Note:
-Let's start peeling the onion and remove all the layers.
-This section can also be called "how to peel an onion"
+Note: Vamos começar então a descascar as camadas em torno de um
+sistema de virtualização.
 
 
 ## First layer: the user interface
@@ -54,52 +67,49 @@ This section can also be called "how to peel an onion"
 <tr class="hidden"><td>Hardware (CPU)</td></tr>
 </table>
 
-Note:
-I will show you one example of how it looks from the outside.  I
-will use the virt-manager tool as an example because that's what
-I know how to use.  There are other tools out there for desktops
-(like Boxes), and there are lots of other solutions for the
-server side, but the basics would be still the same.
+Note: A primeira camada é a interface com o usuário para
+gerenciamento de máquinas virtuais.  Existem inúmeros sistemas de
+gerenciamento de máquinas virtuais.  No meu exemplo, vou mostrar
+o virt-manager que é muito simples de rodar no desktop.
 
 
 ### Creating a VM
 <img src="new-vm-1.png" width="100%">
 
-Note:
-This is the user interface for creating a new VM on virt-manager.
-First it asks you how you want to install it.  I chose to use an
-ISO image.
+Note: Essa é a interface para criar uma nova VM no virt-manager.
+Primeiro ele pergunta como você vai instalar o sistema; se é com
+boot pela rede, imagem ISO, e outras opções. Eu escolhi instalar
+a partir de uma imagem ISO.
 
 
 ### Install location
 <img src="new-vm-2.png" width="100%">
 
-Note:
-Then it asks you where the install media is.
+Note: Depois ele pergunta onde está a mídia de instalação.
+Selecionei uma imagem ISO do Fedora que eu baixei.
 
 
 ### CPU & RAM
 <img src="new-vm-3.png" width="100%">
 
-Note:
-Then it asks you how you want to allocate resources for the
-virtual machine, including CPU and RAM...
+Note: Ele te pergunta quanto de memória e quantas CPUs a máquina
+virtual vai ter.
 
 
 ### Storage
 <img src="new-vm-4.png" width="100%">
 
 Note:
-and disk storage for the VM.
+Quanto espaço em disco.
 
 
 ### A Running Virtual Machine
 <img src="new-vm-running.png" width="125%">
 
-Note:
-Then your VM is up and running.  I used a Fedora ISO image so
-it's running a live desktop with an option to install Fedora in
-the hard disk.
+Note: E depois disso a sua VM está rodando. No caso eu tenho uma
+tela do virt-manager mostrando o desktop Gnome e opções de
+instalação do Fedora.
+
 
 
 <!-- ## Next layer:  -->
@@ -142,6 +152,8 @@ the hard disk.
 <tr class="hidden"><td>Hardware (CPU)</td></tr>
 </table>
 
+Note: A próxima camada é a biblioteca que o virt-manager utiliza
+para gerenciar as VMs, que é a libvirt.
 
 ## libvirt interface (XML)
 
@@ -304,15 +316,11 @@ the hard disk.
 </domain>
 </code></pre>
 
-Note:
-Can you read this? No.  Right, that's the point.  What you are
-seeing here is a 150-line XML document.
-
-libvirt is used by virt-manager, virt-install and many other
-virtualization systems to manage VMs.  In libvirt, VM
-configuration is represented using XML.  What I want you to see
-here is the amount of low-level detail that is represented at
-this layer.
+Note: A libvirt é uma biblioteca com bindings para várias
+linguagens, e na libvirt a configuração de uma máquina virtual é
+representada no formato XML. Vocês não vão conseguir ler, mas no
+slide eu tenho o arquivo XML gerado pelo virt-manager para rodar
+a máquina virtual.
 
 
 ## Next layer:
@@ -324,6 +332,8 @@ this layer.
 <tr class="hidden"><td>KVM (kernel)</td></tr>
 <tr class="hidden"><td>Hardware (CPU)</td></tr>
 </table>
+
+Note: a libvirt por sua vez vai executar e controlar o QEMU.
 
 
 ## QEMU interface (command-line)
@@ -384,8 +394,9 @@ this layer.
 > -msg timestamp=on
 </code></pre>
 
-Note:
-O QEMU é uma ferramenta de linha de comando.
+Note: O QEMU é uma ferramenta de linha de comando. No slide a
+gente tem a linha de comando gerada para a VM que mostrei no
+virt-manager.
 
 
 ## QEMU interface (QMP)
@@ -407,6 +418,10 @@ O QEMU é uma ferramenta de linha de comando.
 ⇐ { "return": { "enabled": true, "present": true } }
 </code></pre>
 
+Note: o QEMU também tem um protocolo de comunicação com outros
+processos em runtime chamado QMP (QEMU Monitor Protocol). Eu nao
+vou entrar em detalhes sobre ele.
+
 
 ## Next layer:
 
@@ -418,9 +433,8 @@ O QEMU é uma ferramenta de linha de comando.
 <tr class="hidden"><td>Hardware (CPU)</td></tr>
 </table>
 
-Note:
-Now things are getting more interesting.  We're moving from
-userspace to the Linux kernel.
+Note: o QEMU é o componente userspace de mais baixo nível nessa
+pilha, e ele se comunica com o módulo KVM do kernel.
 
 
 ## KVM interface
@@ -434,7 +448,15 @@ while (1) {
 }
 </code></pre>
 
-Note:
+Note: O KVM é controlado principalmente através de um arquivo de
+dispotivo, o /dev/kvm, e de uma série de chamadas `ioctl()` para
+criação, configuração e execução de VCPUs. O código no slide é só
+uma simplificação de como o processo ocorre. O QEMU abre o
+/dev/kvm, pede para criar um file descriptor para a VM, cria um
+file descriptor para cada VCPU, e chama uma `ioctl` específica
+para rodar o código do guest nessa VCPU.
+
+--------------
 This is how the KVM API looks like.  Of course a huge amount of
 detail is omitted here and this code wont' work the way it is.
 
@@ -454,18 +476,25 @@ the VCPU in a loop.
 <tr class="current"><td>Hardware (CPU)</td></tr>
 </table>
 
-Note:
-Now we're at the last layer: the hardware itself.
+Note: O KVM, no final, é quem vai se comunicar com o hardware e
+utilizar as funcionalidades de virtualização da CPU física.
 
 
-## Hardware (CPU) interfaces
+## Hardware (CPU) interfaces (x86)
 
 <table>
 <tr><td></td><td><b>VMX</b> (Intel)                                </td><td><b>SVM</b> (AMD)                        </td></tr>
-<tr><td>Setup</td><td>Virtal Machine Control Structure (**VMCS**) </td><td>Virtal Machine Control Block (**VMCB**) </td></tr>
+<tr><td>Setup</td><td>Virtal Machine Control Structure (**VMCS**)  </td><td>Virtal Machine Control Block (**VMCB**) </td></tr>
 <tr><td>Launch</td><td>**`VMLAUNCH`**                              </td><td>**`VMRUN`**                             </td></tr>
 <tr><td>Resume</td><td>**`VMRESUME`**                              </td><td>**`VMRUN`**                             </td></tr>
 </table>
+
+Note: na plataforma x86 existem duas interfaces de virtualização
+por hardware, mas elas são muito parecidas. Nas CPUs Intel a
+tecnologia se chama VMX, e nas CPUs AMD se chama SVM. As duas
+basicamente oferecem mecanismos para configurar o estado de uma
+CPU virtual numa área de memória, e instruções para rodar código
+no contexto de uma CPU virtual.
 
 
 ## The Layers
@@ -478,12 +507,21 @@ Now we're at the last layer: the hardware itself.
 <tr class="visible"><td>Hardware (CPU)</td></tr>
 </table>
 
-Note:
+Note: Finalizando, essas são as camadas sobre as quais eu vou
+falar: a aplicação de gerenciamento, a libvirt, o QEMU, o KVM, e
+o hardware.
 
 
 ## The virtual hardware
 
 <img src="qemu-kvm.png" style="width: 75%; border: none;">
+
+Note: retornando àquele diagrama do início, uma simplificação
+muito grosseira do sistema é que o KVM e o hardware só cuidam de
+virtualizar a CPU, e o QEMU cuida de virtualizar todo o resto.
+Mas reforçando, isso é só uma simplificação, porque na prática
+existem uma série de otimizações que acabam tornando essa divisão
+um pouco mais complexa.
 
 
 ## The virtual hardware
@@ -508,15 +546,20 @@ Note:
 
 </div>
 
+Note: Ou, simplificando ainda mais: o QEMU cria o seu computador
+virtual, com rede, disco, teclado, mouse, e o KVM cuida da sua
+CPU virtual.
 
-## Userspace (QEMU) control the virtual hardware
+
+## Userspace (QEMU) controls the virtual hardware
 
 <b>All</b> hardware emulation is configured by userspace
 
-Note:
-Um ponto relevante a se lembrar é o seguinte: o KVM e o hardware
-provém apenas os mecanismos para utilizar o hardware, mas
-quem vai configurar e controlar o processo todo é userspace.
+Note: Um ponto relevante a se lembrar é o seguinte: o KVM e o
+hardware físico provêm apenas os mecanismos para utilizar o
+hardware, mas quem vai configurar e controlar o processo todo
+(inclusive configurar como a própria VCPU vai funcionar) é o
+userspace (no caso, o QEMU).
 
 
 ## Virtual hardware configuration
@@ -598,7 +641,7 @@ One example
 
 1. Userspace allocates memory for guest (HVA)
 2. `ioctl(KVM_SET_USER_MEMORY_REGION, ...)`
-   * Input: GPA -> HVA mapping
+   * Input: GPA → HVA mapping
   * GPA -> HPA mapping is built
 3. `ioctl(vcpufd, KVM_RUN, ...);`
   *  `VMLAUNCH`/`VMRESUME` (VMX) or `VMRUN` (AMD)
@@ -763,8 +806,8 @@ timer
 
 * Software:
   * Paravirtualization: KVM Clock, Virtio, etc.
-  * Fine tuning / configuration
   * In-kernel emulation (APIC, MSRs, vhost)
+  * Fine tuning / configuration
   * *etc.*
 * Hardware:
   * Software MMU → Hardware MMU
@@ -792,15 +835,13 @@ system caused a VM exit.
 
 ## Guest ABI guarantees
 
-Virtual hardware stays the same:
+QEMU and libvirt guarantee that virtual hardware stays the same:
 <ul>
 <li class="fragment">After host <b>software</b> changes (QEMU, kernel, libvirt)</li>
 <li class="fragment">After host <b>hardware</b> changes</li>
 <li class="fragment">If <b>moved to another host</b> (live or offline migration)</li>
 <li class="fragment"><b>...as long as configuration is the same</b></li>
 </ul>
-
-<p class="fragment"><b>Both QEMU and libvirt guarantee this</b></p>
 
 Note:
 This is why the QEMU command-line is so huge: everything that is
@@ -810,34 +851,16 @@ visible to the guest operating system is encoded there somehow.
 ## Desirable guest ABI changes
 
 * Examples: <!-- .element: class="fragment" -->
-  * More efficient defaults <!-- .element: class="fragment" -->
+  * Performance <!-- .element: class="fragment" -->
+  * Usability <!-- .element: class="fragment" -->
   * Bug fixes (e.g. CPU vulnerabilities) <!-- .element: class="fragment" -->
 * Explicit configuration change always required <!-- .element: class="fragment" -->
 * Work in progress to make that easier <!-- .element: class="fragment" -->
 
 
-## Choosing a VM configuration
+## VM configuration policy
 
-<div style="display: flex;">
-<div style="flex: 0.5;">
-<table class="layers">
-<tr class="current"><td>management</td></tr>
-<tr class="visible"><td>libvirt</td></tr>
-<tr class="visible"><td>QEMU</td></tr>
-<tr class="visible"><td>KVM</td></tr>
-<tr class="visible"><td>Hardware</td></tr>
-</table>
-</div>
-
-<div style="flex: 1; margin: 1em; text-align: left;">
-<ul>
-<li>Not all hosts can run all configurations</li>
-<li>Only <b>management software</b> can choose the best configuration</li>
-<li>libvirt/QEMU/KVM only provide mechanisms, not policy</li>
-</ul>
-</div>
-
-</div>
+<img src="multi-host-mgmt-with-mgmt.png" style="border: none;">
 
 Note:
 TODO: mention libosinfo/etc
@@ -846,7 +869,12 @@ TODO: mention libosinfo/etc
 
 # References
 
-TODO: add references
+* Using the KVM API:
+  https://lwn.net/Articles/658511/
+* `linux/Documentation/virtual/kvm/api.txt`
+* Intel Software Developer Manuals:
+  https://software.intel.com/en-us/articles/intel-sdm
+  (See Volume 3, Chapters 23-33)
 
 
 # Thank You
