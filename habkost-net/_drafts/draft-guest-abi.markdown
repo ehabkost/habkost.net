@@ -64,10 +64,10 @@ Below is an incomplete list of what is considered part of the
 Guest ABI and must not change when using the same machine-type
 and device options:
 
-* **Virtual CPU model and features:** on x86, this means all data returned by the `CPUID` instruction.
-* **I/O and memory addresses of virtual hardware:** this means all I/O and memory addresses
+* **Virtual CPU model and features:** on x86, this means all data returned to the guest by the `CPUID` instruction.
+* **I/O and memory addresses of virtual hardware:** this means all I/O and memory addresses see by the guest
 * **Virtual device addresses and topology:** this means the list of buses and devices visible to the guest, their addresses and how they are wired together.
-* **Virtual NUMA topology.**
+* **Virtual NUMA topology:**
 * **Identification data of virtual hardware:** this means SMBIOS tables or other hardware identifiers visible to the guest.
 
 <!-- ### Runtime state of virtual hardware -->
@@ -79,20 +79,28 @@ and device options:
 
 ## Factors that aren't supposed to affect Guest ABI
 
+Things that are not directly exposed to the guest OS are normally
+not part of the guest ABI.  Examples:
+
 * Backend options like `-object`, `-chardev`, and `-blockdev`
+* Binding of guest RAM to host NUMA nodes
+* Pinning of VCPU and other threads to host CPUs
 * Kernel and KVM module version
-* Host CPU model
+* Model and features of the physical host CPU
 * Any host hardware
 * Internal QOM tree topology in QEMU
 
 
-## Exceptions
+## Exceptions and corner cases
 
 * CPU vendor
 * -cpu host
 * host-phys-bits=on
 * vhost-user?
-* hardware passthrough like vfio?
+* hardware passthrough
+* ACPI and other BIOS tables
+* BIOS images
+* Hotplugged hardware
 
 
 ## Implementation details
