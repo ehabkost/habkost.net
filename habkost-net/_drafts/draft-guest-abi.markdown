@@ -64,17 +64,17 @@ Below is an incomplete list of what is considered part of the
 Guest ABI and must not change when using the same machine-type
 and device options:
 
-* **CPU model and features::** on x86, this means all data returned by the `CPUID` instruction.
-* **I/O and memory addresses:** this means all I/O and memory addresses
-* **Device addresses and topology:** this means the list of buses and devices visible to the guest, their addresses and how they are wired together.
-* **NUMA topology.**
-* **Hardware identification data:** this means SMBIOS tables or other hardware identifiers visible to the guest.
+* **Virtual CPU model and features:** on x86, this means all data returned by the `CPUID` instruction.
+* **I/O and memory addresses of virtual hardware:** this means all I/O and memory addresses
+* **Virtual device addresses and topology:** this means the list of buses and devices visible to the guest, their addresses and how they are wired together.
+* **Virtual NUMA topology.**
+* **Identification data of virtual hardware:** this means SMBIOS tables or other hardware identifiers visible to the guest.
 
-### Hardware state
-
-Hardware state is **not** part of the Guest ABI.  However,
-changing hardware state in a way that is not expected by the
-guest might be still a bug in the hardware emulation.
+<!-- ### Runtime state of virtual hardware -->
+<!--  -->
+<!-- Runtime state is **not** part of the Guest ABI.  However, -->
+<!-- changing hardware state in a way that is not expected by the -->
+<!-- guest might be still a bug in the hardware emulation. -->
 
 
 ## Factors that aren't supposed to affect Guest ABI
@@ -107,3 +107,9 @@ guest might be still a bug in the hardware emulation.
 https://fedoraproject.org/wiki/Features/KVM_Stable_Guest_ABI
 https://fedoraproject.org/wiki/KVM_Stable_Guest_ABI_Design_Notes
 https://fedoraproject.org/wiki/Features/KVM_Stable_PCI_Addresses
+
+
+# Thanks
+
+Thanks to Kashyap Chamarthy, who reviewed early drafts of this
+document.
