@@ -35,8 +35,7 @@ introdução vou detalhar melhor como algumas operações funcionam.
 
 <img src="virtual-machine.png" style="width: 75%; border: none;">
 
-Note: Esse diagrama exemplifica algumas das partes de uma máquina
-virtual.  Uma máquina virtual permite rodar outros sistemas
+Note: O que é uma máquina virtual?  Uma máquina virtual permite rodar outros sistemas
 operacionais num computador host, de forma controlada e isolada
 do resto do hardware real. Você tem as CPUs virtuais (ou VCPUs),
 dispositivos virtuais variados. O software que roda dentro da
@@ -46,7 +45,7 @@ operacional que rodam no hardware real é o **host**.
 
 ## The Layers
 
-<img src="onion.jpg" width="40%">
+<img src="onion.jpg" width="80%">
 <!-- credit: https://www.flickr.com/photos/theilr/4947839133 -->
 
 Note: Vamos começar então a descascar as camadas em torno de um
@@ -391,9 +390,9 @@ Note: a libvirt por sua vez vai executar e controlar o QEMU.
 > -msg timestamp=on
 </code></pre>
 
-Note: O QEMU é uma ferramenta de linha de comando. No slide a
-gente tem a linha de comando gerada pela libvirt para a VM que
-mostrei no virt-manager.
+Note: O QEMU é uma ferramenta de linha de comando. No slide vocês
+podem ver a linha de comando gerada pela libvirt para a VM que
+criei no virt-manager.
 
 
 ## QEMU interface (QMP)
@@ -437,8 +436,10 @@ nessa pilha, e ele se comunica com o módulo KVM do kernel.
 
 ## KVM interface
 
-<pre><code class="c" data-trim>
-fd = open("/dev/kvm", ...);
+(a gross oversimplification)
+
+<pre><code class="c" data-trim data-noescape>
+fd = open(<mark>"/dev/kvm"</mark>, ...);
 vmfd = ioctl(kvm, KVM_CREATE_VM, ...);
 vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, ...);
 while (1) {
@@ -611,6 +612,9 @@ essa divisão um pouco mais complexa.
 
 One example
 
+Note: vamos ver como o software guest acaba interagindo com a
+emulação de dispositivos feita no QEMU.
+
 
 ## Terminology
 
@@ -625,10 +629,10 @@ One example
 Note: antes de falar de alguns detalhes eu preciso explicar um
 pouco de terminologia.  Num sistema em hardware físico você
 normalmente tem dois tipos de endereços de memória: endereços
-virtuais e endereços físicos. Quando a gente tem virtualização
-envolvida, isso se duplica: dentro do guest você possui os
-endereços virtuais e físicos do guest, e no lado do host você tem
-os endereços virtuais e reais dentro do host.
+virtuais e endereços físicos. Quando virtualização envolvida,
+isso se duplica: dentro do guest você possui os endereços
+virtuais e físicos do guest, e no lado do host você tem os
+endereços virtuais e reais dentro do host.
 
 
 ## 1. Launch guest code
@@ -665,6 +669,8 @@ Por exemplo, quando o guest tenta interagir com o hardware.  Vou
 usar como exemplo uma instrução de I/O feita por um driver no
 guest.
 
+Essa é uma linha de código de um driver USB do próprio Linux.
+
 
 ## 3. VM Exits
 
@@ -683,6 +689,8 @@ receber informações sobre a operação que causou a VM Exit.
 
 
 ## 4. Software emulation (KVM)
+
+(a gross oversimplification)
 
 <pre><code class="c" data-trim>
 while (1) {
@@ -1088,6 +1096,14 @@ atualizada.
 <img src="multi-host-mgmt-vm2.png" style="border: none;">
 <!-- .slide: data-transition="none-in slide-out" -->
 
+Note: vou tentar demonstrar quando isso pode ser tornar um
+problema. Suponha que você tenha um cluster com vários hosts, mas
+um deles tem algumas features a mais. Se você criar uma VM nesse
+host com as features A e B e tentar migrar para um outro host que
+não tem uma delas, você não vai conseguir. Ou o sistema bloqueia
+a migração completamente, ou a configuração da VM precisa ser
+atualizada.
+
 
 ## Desirable guest ABI changes
 
@@ -1119,9 +1135,9 @@ essencial do sistema. É papel da camada de gerenciamento definir
 a política para decisão sobre a configuração de uma VM.
 
 Como a libvirt, QEMU, KVM e o hardware de um host não possuem
-informações necessárias para decidir o que é melhor para cada
+informações suficientes para decidir o que é melhor para cada
 caso, eles apenas oferecem os mecanismos, e a política e
-decisões.
+decisões ficam a cargo da camada de gerenciamento.
 
 
 ## Extra Information
