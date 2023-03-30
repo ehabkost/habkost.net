@@ -1,6 +1,5 @@
 .sass-cache
 .jekyll-metadata
-Gemfile.lock
 *.mmd.png
 _includes/*.mmd.svg
 _site/.htaccess
@@ -18,3 +17,4 @@ _site/package.json
 _site/posts/
 _site/virt-feed.xml
 node_modules
+.bundle/
