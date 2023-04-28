@@ -1,5 +1,25 @@
 # KVM and CPU identification in x86
 
+- [KVM and CPU identification in x86](#kvm-and-cpu-identification-in-x86)
+  - [The basics: CPUID and MSR](#the-basics-cpuid-and-msr)
+    - [`CPUID` instruction](#cpuid-instruction)
+      - [Official documentation for CPUID fields](#official-documentation-for-cpuid-fields)
+      - [Visualizing CPUID data](#visualizing-cpuid-data)
+    - [MSRs (Model Specific Registers)](#msrs-model-specific-registers)
+      - [Visualizing MSR data](#visualizing-msr-data)
+      - [Official documentation for MSRs](#official-documentation-for-msrs)
+    - [Userspace visibility of CPU features](#userspace-visibility-of-cpu-features)
+      - [`CPUID` instruction](#cpuid-instruction-1)
+      - [MSRs](#msrs)
+      - [`/proc/cpuinfo`](#proccpuinfo)
+    - [Virtualization and CPU features](#virtualization-and-cpu-features)
+  - [(WIP) How the Linux kernel keeps track of CPU features](#wip-how-the-linux-kernel-keeps-track-of-cpu-features)
+  - [(WIP) How libvirt/QEMU/KVM stack controls CPU features](#wip-how-libvirtqemukvm-stack-controls-cpu-features)
+- [Drafts/notes](#draftsnotes)
+      - [Meaning of CPUID fields](#meaning-of-cpuid-fields)
+  - [TODO](#todo)
+
+
 ## The basics: CPUID and MSR
 
 There are two main CPU identification and feature enumeration mechanisms in x86
@@ -251,7 +271,7 @@ expected, guest software will break.
     SDM][intel-sdm] for low-level details.
 
 
-## [WIP] How the Linux kernel keeps track of CPU features
+## (WIP) How the Linux kernel keeps track of CPU features
 
 ```mermaid
 flowchart TB
@@ -276,7 +296,7 @@ flowchart TB
         end
 ```
 
-## [WIP] How libvirt/QEMU/KVM stack controls CPU features
+## (WIP) How libvirt/QEMU/KVM stack controls CPU features
 
 ```mermaid
 flowchart TB
