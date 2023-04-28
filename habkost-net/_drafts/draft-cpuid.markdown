@@ -316,32 +316,62 @@ flowchart TB
             kernel_cmdline --> cpu_caps
             cpu_caps --> cpuinfo
             subgraph KVM
-                KVM_GET_SUPPORTED_CPUID
-                KVM_GET_MSRS
-                KVM_SET_CPUID2
-                KVM_SET_MSRS
+                KVM_GET_SUPPORTED_CPUID(KVM_GET_SUPPORTED_CPUID)
+                KVM_GET_MSRS(KVM_GET_MSRS)
+                KVM_SET_CPUID2(KVM_SET_CPUID2)
+                KVM_SET_MSRS(KVM_SET_MSRS)
                 ? --> KVM_GET_MSRS
-            end
-            cpu_caps --> KVM_GET_SUPPORTED_CPUID
-        end
-        subgraph Host Userspace
-            direction LR
-
-            qemu["QEMU"]
-            cpuid --> qemu
-            KVM_GET_SUPPORTED_CPUID --> qemu
-            KVM_GET_MSRS --> qemu
-            qemu --> KVM_SET_CPUID2
-            qemu --> KVM_SET_MSRS
-        end
-        subgraph VM
-            subgraph VCPU
                 subgraph vcpu[struct vcpu]
                     direction TB
 
                     vcpu_cpuid_entries[cpuid_entries]
                     msr_fields["(multiple fields)"]
                 end
+            end
+            cpu_caps --> KVM_GET_SUPPORTED_CPUID
+            
+        end
+        subgraph Host Userspace
+            direction LR
+
+            subgraph qemu["QEMU"]
+                subgraph qemucmdline["command line"]
+                    machine_opt["-machine ..."]
+                    cpu_opt["-cpu ..."]
+                    global_opt["-global ..."]
+                end
+                qemu_cpu_model_table["CPU model table"]
+                qemu_cpu_model["CPU model"]
+                subgraph qemucpu["VCPU object"]
+                    feature_words
+                end
+                qemu_machine_type_table["Machine type table"]
+                subgraph machinetype["machine type"]
+                    machine_compat_props["compat_props"]
+                end
+
+                pick_cpu_model("Select CPU model")
+                pick_machine_type("Select machine type")
+
+                qemu_cpu_model_table --> pick_cpu_model
+                cpu_opt --> pick_cpu_model
+                pick_cpu_model --> qemu_cpu_model
+
+                machine_opt --> pick_machine_type
+                qemu_machine_type_table --> pick_machine_type
+                pick_machine_type --> machinetype
+
+                qemu_cpu_model --> feature_words
+                machine_compat_props --> feature_words
+                global_opt --> feature_words
+            end
+            KVM_GET_SUPPORTED_CPUID --> feature_words
+            KVM_GET_MSRS --> feature_words
+            feature_words --> KVM_SET_CPUID2
+            feature_words --> KVM_SET_MSRS
+        end
+        subgraph VM
+            subgraph VCPU
                 vm_cpuid("CPUID instruction")
                 vm_rdmsr("RDMSR instruction")
                 KVM_SET_CPUID2 --> vcpu_cpuid_entries
