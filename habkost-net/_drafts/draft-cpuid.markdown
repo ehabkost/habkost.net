@@ -257,7 +257,7 @@ different from regular bare metal `CPUID` and `RDMSR`:
 * The output of the `CPUID` and `RDMSR` instructions can be 100% controlled by KVM
 
 KVM can lie as much as it wants when handling `CPUID` and `RDMSR` instructions.
-The challenge here is telling lies that won't break guest software.  In general,
+The challenge here is telling *lies that won't break guest software*.  In general,
 it's okay to report a feature as unavailable when it's actually available—guest
 software will simply not try to use the feature.  On the other hand, if the
 hypervisor report a feature as available and the feature doesn't work as
