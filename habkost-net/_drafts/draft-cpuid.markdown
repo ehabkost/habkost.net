@@ -266,7 +266,7 @@ expected, guest software will break.
     SDM][intel-sdm] for low-level details.
 
 
-## How the Linux kernel keeps track of CPU features
+## [WIP] How the Linux kernel keeps track of CPU features
 
 ```mermaid
 flowchart TB
@@ -291,7 +291,7 @@ flowchart TB
         end
 ```
 
-## How libvirt/QEMU/KVM stack controls CPU features
+## [WIP] How libvirt/QEMU/KVM stack controls CPU features
 
 ```mermaid
 flowchart TB
