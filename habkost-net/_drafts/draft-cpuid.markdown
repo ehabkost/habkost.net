@@ -1,20 +1,5 @@
 # KVM and CPU identification in x86
 
-## Outline/Notes
-
-Where CPUID information comes from / goes to?
-
-* Output of CPUID instruction
-* Linux kernel cpu_cap data structures
-* `/proc/cpuinfo` contents
-* KVM CPUID tables
-* QEMU CPUID func
-* QEMU feature_words table
-* QEMU CPU model table
-* QEMU command-line and QMP
-* libvirt cpu_map.xml
-* libvirt domain XML
-
 ## The basics: CPUID and MSR
 
 There are two main CPU identification and feature enumeration mechanisms in x86
@@ -375,3 +360,17 @@ relevant CPUID fields for this guide are:
 The fields above contain a set of flags where `1` indicates the CPU supports a
 specific feature.  Note that most CPUID fields are *not* just a set of boolean
 flags, but in this guide we're focusing on those boolean flags.
+
+## TODO
+
+Items to include:
+
+* Linux kernel cpu_cap data structures
+* `/proc/cpuinfo` contents
+* KVM CPUID tables
+* QEMU CPUID func
+* QEMU feature_words table
+* QEMU CPU model table
+* QEMU command-line and QMP
+* libvirt cpu_map.xml
+* libvirt domain XML
