@@ -14,9 +14,10 @@ title: KVM and CPU identification in x86
     - [`CPUID` instruction](#cpuid-instruction-1)
     - [MSRs](#msrs)
     - [`/proc/cpuinfo`](#proccpuinfo)
-  - [Virtualization and CPU features](#virtualization-and-cpu-features)
 - [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
 - [How KVM controls CPU features](#how-kvm-controls-cpu-features)
+  - [Differences to bare metal](#differences-to-bare-metal)
+  - [Overview](#overview)
   - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
 - [How QEMU controls CPU features](#how-qemu-controls-cpu-features)
   - [Machine type compat properties](#machine-type-compat-properties)
@@ -251,29 +252,6 @@ flags` and `bugs`.  We'll discuss how `/proc/cpuinfo` works in more detail
 later.
 
 
-## Virtualization and CPU features
-
-When running a virtual machine in x86 using KVM, the following things are
-different from regular bare metal `CPUID` and `RDMSR`:
-
-* Every `CPUID` and `RDMSR` instruction can[^vmexits-rdmsr] be intercepted and handled by KVM
-* The output of the `CPUID` and `RDMSR` instructions can be 100% controlled by KVM
-
-KVM can lie as much as it wants when handling `CPUID` and `RDMSR` instructions.
-The challenge here is telling *lies that won't break guest software*.  In general,
-it's okay to report a feature as unavailable when it's actually available—guest
-software will simply not try to use the feature.  On the other hand, if the
-hypervisor report a feature as available and the feature doesn't work as
-expected, guest software will break.
-
-[^vmexits-rdmsr]: This doesn't mean every single `RDMSR` instruction will cause
-    a *VM Exit*, it just means KVM is able to fully control what happens when a
-    `RDMSR` instruction is executed.  See section 15.11 "MSR Intercepts" on
-    Volume 2 of the [AMD manual][amd-manual] and section 25.3 "Changes to
-    Instruction Behavior in VMX Non-Root Operation" on Volume 3 of the [Intel
-    SDM][intel-sdm] for low-level details.
-
-
 # How the Linux kernel keeps track of CPU features
 
 ```mermaid
@@ -305,6 +283,31 @@ Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.or
 * Flags can be disabled in cpuinfo_x86 even if hardware supports them
 
 # How KVM controls CPU features
+
+## Differences to bare metal
+
+When running a virtual machine in x86 using KVM, the following things are
+different from regular bare metal `CPUID` and `RDMSR`:
+
+* Every `CPUID` and `RDMSR` instruction can[^vmexits-rdmsr] be intercepted and handled by KVM
+* The output of the `CPUID` and `RDMSR` instructions can be 100% controlled by KVM
+
+KVM can lie as much as it wants when handling `CPUID` and `RDMSR` instructions.
+The challenge here is telling *lies that won't break guest software*.  In general,
+it's okay to report a feature as unavailable when it's actually available—guest
+software will simply not try to use the feature.  On the other hand, if the
+hypervisor report a feature as available and the feature doesn't work as
+expected, guest software will break.
+
+[^vmexits-rdmsr]: This doesn't mean every single `RDMSR` instruction will cause
+    a *VM Exit*, it just means KVM is able to fully control what happens when a
+    `RDMSR` instruction is executed.  See section 15.11 "MSR Intercepts" on
+    Volume 2 of the [AMD manual][amd-manual] and section 25.3 "Changes to
+    Instruction Behavior in VMX Non-Root Operation" on Volume 3 of the [Intel
+    SDM][intel-sdm] for low-level details.
+
+
+## Overview
 
 The following diagram shows the *data flow* between multiple steps of VCPU
 initialization in KVM:
@@ -375,14 +378,11 @@ flowchart TB
     cpuid_handler --> vm_cpuid
     rdmsr_handler --> vm_rdmsr
 
-    subgraph VM
-        subgraph VCPU
+    subgraph Virtual Machine Guest
             vm_cpuid("CPUID instruction")
             vm_rdmsr("RDMSR instruction")
             KVM_SET_CPUID2 --> vcpu_cpuid_entries
             KVM_SET_MSRS --> msr_fields
-
-        end
     end
 
 ```
