@@ -152,9 +152,9 @@ This system has 1 eight-core processor with hyper-threading (2 threads per core)
 
 x86 CPUs have a set of registers called *model-specific registers* (MSRs), which
 can be read using the `RDMSR` instruction.  Despite their name, some of these
-registers are now considered *architectural*, meaning they are part of the x86
-architecture and are not specific to any particular CPU model.  In the Intel
-documentation, those architectural MSRs are named with a `IA32_` prefix.
+registers are considered *architectural*, meaning they are part of the x86
+architecture and are not specific to a particular CPU model.  In the Intel
+documentation, architectural MSRs are named with a `IA32_` prefix.
 
 **Note:** the `RDMSR` instruction is privileged and can't be executed from userspace.
 
