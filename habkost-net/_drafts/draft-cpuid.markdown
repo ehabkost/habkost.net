@@ -18,6 +18,7 @@
   - [(WIP) How QEMU controls CPU features](#wip-how-qemu-controls-cpu-features)
     - [Machine type compat properties](#machine-type-compat-properties)
     - [Feature filtering](#feature-filtering)
+    - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
     - [Live migration](#live-migration)
   - [(WIP) How libvirt controls CPU features](#wip-how-libvirt-controls-cpu-features)
 - [Drafts/notes](#draftsnotes)
@@ -308,6 +309,9 @@ Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.or
 
 ## (WIP) How KVM controls CPU features
 
+The following diagram shows the *data flow* between multiple steps of VCPU
+initialization in KVM:
+
 ```mermaid
 flowchart TB
     subgraph Host
@@ -386,11 +390,20 @@ flowchart TB
 
 ```
 
+The diagram is pretty complex, but the most important ideas are:
+
+* **QEMU is in control**: QEMU is 100% in control of what CPU features are
+  exposed to the guest.  KVM will only provide the data QEMU needs through a few
+  `ioctl()` calls.
+* **Data exposed to QEMU is already filtered**: the CPUID and MSR data exposed
+  through the `KVM_GET_SUPPORTED_CPUID`, `KVM_GET_MSR_FEATURE_INDEX_LIST` and
+  `KVM_GET_MSRS` ioctls is the result of multiple layers of filtering done by
+  the kernel.
 
 ## (WIP) How QEMU controls CPU features
 
-The following diagram shows the *data flow* between multiple steps involved in
-the initialization of VCPU features by QEMU:
+The following diagram shows the *data flow* between multiple stages of the
+initialization of VCPU features by QEMU:
 
 ```mermaid
 flowchart TB
@@ -512,17 +525,34 @@ won't affect the CPU features seen by guests.
 
 ### Feature filtering
 
-QEMU feature filtering is subtle.  It's one area where the default behavior of
-QEMU is not the safest one, but it never changed upstream due to fears of
-breaking compatibility with existing software.
+QEMU feature filtering is subtle.  It's one of the areas where the default
+behavior of QEMU is not the safest or most appropriate, but it never changed
+upstream due to fears of breaking compatibility with existing software.
 
-The default behavior of QEMU when a feature required by a CPU model or by a
-command line option is not supported by the host is to just print a warning but
-keep running.  This means the same QEMU command line can produce different results
-on different hosts. This has consequences for live migration safety (see next section).
+The default behavior of QEMU when a feature is requested but not supported by
+the host is to just **print a warning but keep running**.  This means the same
+QEMU command line can produce different results on different hosts. This has
+consequences for live migration safety (see next section).
 
 The safer behavior (refusing to run the VM if a feature is missing) can be
 enabled by using the `-cpu ...,enforce` command line option.
+
+### What can make a feature be filtered out?
+
+Some of the reasons a feature might be filtered out by QEMU:
+
+* Feature reported by KVM as unsupported.  This can happen if:
+  * Feature is not supported by the host CPU;
+  * Feature is supported by the host CPU, but:
+    * not supported by KVM yet;
+    * supported by KVM, but:
+      * was disabled by a build-time option;
+      * was disabled automatically due to a known issue;
+      * was disabled in the kernel command line.
+* Feature reported by KVM as supported, but;
+  * QEMU doesn't know about it yet;
+  * QEMU knows about the feature yet, but:
+    * QEMU doesn't support live migration with the feature yet.
 
 
 ### Live migration
