@@ -282,6 +282,12 @@ Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.or
 * Not every flag in cpuinfo_x86 and /proc/cpuinfo correspond to a single flag in CPUID or a MSR
 * Flags can be disabled in cpuinfo_x86 even if hardware supports them
 
+The full list of cpuinfo_x86 flags is defined at
+[arch/x86/include/asm/cpufeatures.h](https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/cpufeatures.h).
+Note that the file is split in different sections: some sections correspond to
+specific CPUID leaves, while some sections contain flags coming from multiple
+sources.
+
 # How KVM controls CPU features
 
 ## Differences to bare metal
