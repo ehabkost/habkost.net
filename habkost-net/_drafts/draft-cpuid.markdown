@@ -13,8 +13,13 @@
       - [MSRs](#msrs)
       - [`/proc/cpuinfo`](#proccpuinfo)
     - [Virtualization and CPU features](#virtualization-and-cpu-features)
-  - [(WIP) How the Linux kernel keeps track of CPU features](#wip-how-the-linux-kernel-keeps-track-of-cpu-features)
-  - [(WIP) How libvirt/QEMU/KVM stack controls CPU features](#wip-how-libvirtqemukvm-stack-controls-cpu-features)
+  - [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
+  - [(WIP) How KVM controls CPU features](#wip-how-kvm-controls-cpu-features)
+  - [(WIP) How QEMU controls CPU features](#wip-how-qemu-controls-cpu-features)
+    - [Machine type compat properties](#machine-type-compat-properties)
+    - [Feature filtering](#feature-filtering)
+    - [Live migration](#live-migration)
+  - [(WIP) How libvirt controls CPU features](#wip-how-libvirt-controls-cpu-features)
 - [Drafts/notes](#draftsnotes)
       - [Meaning of CPUID fields](#meaning-of-cpuid-fields)
   - [TODO](#todo)
@@ -271,118 +276,276 @@ expected, guest software will break.
     SDM][intel-sdm] for low-level details.
 
 
-## (WIP) How the Linux kernel keeps track of CPU features
+## How the Linux kernel keeps track of CPU features
 
 ```mermaid
 flowchart TB
         subgraph CPU
+            direction LR
             cpuid(CPUID instruction)
             msrs[MSRs]
         end
-        cpuid --> cpu_caps
-        msrs --> cpu_caps
+        cpuid --> cpuinfo_x86
+        msrs --> cpuinfo_x86
         subgraph Kernel
             direction LR
             kernel_cmdline["Kernel command line"]
-            cpu_caps
+            cpuinfo_x86[struct cpuinfo_x86]
             cpuinfo["/proc/cpuinfo"]
-            kernel_cmdline --> cpu_caps
-            cpu_caps --> cpuinfo
-        end
-        subgraph Userspace
-            cpuid --> user_proc
-            cpuinfo --> user_proc
-            user_proc["User process"]
+            kernel_cmdline --> cpuinfo_x86
+            cpuinfo_x86 --> cpuinfo
         end
 ```
 
-## (WIP) How libvirt/QEMU/KVM stack controls CPU features
+Most kernel code won't look at the output of CPUID instructions directly.  Normally they will use the macros provided by [arch/x86/include/asm/cpufeature.h](https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/cpufeature.h), like `cpu_has()`.  
+
+Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.org/x86/cpuinfo.html), but some things to keep in mind:
+* The flags on /proc/cpuinfo come directly from cpuinfo_x86
+* The names on /proc/cpuinfo don't necessarily match the names in Intel or AMD documentation
+* Not every CPUID flag is represented in cpuinfo_x86 and /proc/cpuinfo
+* Not every flag in cpuinfo_x86 and /proc/cpuinfo correspond to a single flag in CPUID or a MSR
+* Flags can be disabled in cpuinfo_x86 even if hardware supports them
+
+## (WIP) How KVM controls CPU features
 
 ```mermaid
 flowchart TB
     subgraph Host
-        direction TB
+        direction LR
+
         subgraph CPU
             cpuid(CPUID instruction)
             msrs[MSRs]
         end
-        cpuid --> cpu_caps
-        msrs --> cpu_caps
-        subgraph Host Kernel
+        cpuid --> cpuinfo_x86
+        msrs --> cpuinfo_x86
+
+        subgraph Host Userspace
             direction LR
-            kernel_cmdline["Kernel command line"]
-            cpu_caps
-            cpuinfo["/proc/cpuinfo"]
-            kernel_cmdline --> cpu_caps
-            cpu_caps --> cpuinfo
+            qemu["QEMU"]
+        end
+
+        KVM_GET_SUPPORTED_CPUID --> qemu
+        KVM_GET_MSRS --> qemu
+        KVM_GET_MSR_FEATURE_INDEX_LIST --> qemu
+        qemu --> KVM_SET_CPUID2
+        qemu --> KVM_SET_MSRS
+
+        subgraph Host Kernel
+            direction TB
+            cpuinfo_x86[struct cpuinfo_x86]
             subgraph KVM
-                KVM_GET_SUPPORTED_CPUID(KVM_GET_SUPPORTED_CPUID)
-                KVM_GET_MSRS(KVM_GET_MSRS)
-                KVM_SET_CPUID2(KVM_SET_CPUID2)
-                KVM_SET_MSRS(KVM_SET_MSRS)
-                ? --> KVM_GET_MSRS
+                kvm_set_cpu_caps("kvm_set_cpu_caps()")
+                kvm_get_msr_feature("kvm_get_msr_feature()")
+                kvm_init_msr_list("kvm_init_msr_list()")
+
+                msr_based_features["msr_based_features[]"]
+
+                KVM_GET_SUPPORTED_CPUID("ioctl(KVM_GET_SUPPORTED_CPUID)")
+                KVM_GET_MSR_FEATURE_INDEX_LIST("ioctl(KVM_GET_MSR_FEATURE_INDEX_LIST)")
+                KVM_GET_MSRS("ioctl(KVM_GET_MSRS)")
+                KVM_SET_CPUID2("ioctl(KVM_SET_CPUID2)")
+                KVM_SET_MSRS("ioctl(KVM_SET_MSRS)")
+
                 subgraph vcpu[struct vcpu]
                     direction TB
 
                     vcpu_cpuid_entries[cpuid_entries]
                     msr_fields["(multiple fields)"]
                 end
-            end
-            cpu_caps --> KVM_GET_SUPPORTED_CPUID
-            
-        end
-        subgraph Host Userspace
-            direction LR
 
-            subgraph qemu["QEMU"]
-                subgraph qemucmdline["command line"]
-                    machine_opt["-machine ..."]
-                    cpu_opt["-cpu ..."]
-                    global_opt["-global ..."]
-                end
-                qemu_cpu_model_table["CPU model table"]
-                qemu_cpu_model["CPU model"]
-                subgraph qemucpu["VCPU object"]
-                    feature_words
-                end
+                kvm_set_cpu_caps --> KVM_GET_SUPPORTED_CPUID
+                kvm_get_msr_feature --> kvm_init_msr_list
+                kvm_get_msr_feature --> KVM_GET_MSRS
+                msrs --> kvm_init_msr_list
+                kvm_init_msr_list --> msr_based_features
+                msr_based_features --> KVM_GET_MSR_FEATURE_INDEX_LIST
+
+            end
+            cpuinfo_x86 --> kvm_set_cpu_caps
+            cpuid --> kvm_set_cpu_caps
+            cpuid_handler(CPUID VM Exit handler)
+            rdmsr_handler(RDMSR VM Exit handler)
+            vcpu_cpuid_entries --> cpuid_handler
+            msr_fields --> rdmsr_handler
+        end
+    end
+
+    cpuid_handler --> vm_cpuid
+    rdmsr_handler --> vm_rdmsr
+
+    subgraph VM
+        subgraph VCPU
+            vm_cpuid("CPUID instruction")
+            vm_rdmsr("RDMSR instruction")
+            KVM_SET_CPUID2 --> vcpu_cpuid_entries
+            KVM_SET_MSRS --> msr_fields
+
+        end
+    end
+
+```
+
+
+## (WIP) How QEMU controls CPU features
+
+The following diagram shows the *data flow* between multiple steps involved in
+the initialization of VCPU features by QEMU:
+
+```mermaid
+flowchart TB
+    subgraph Host Kernel
+        direction LR
+        subgraph KVM
+            KVM_GET_SUPPORTED_CPUID("ioctl(KVM_GET_SUPPORTED_CPUID)")
+            KVM_GET_MSR_FEATURE_INDEX_LIST("ioctl(KVM_GET_MSR_FEATURE_INDEX_LIST)")
+            KVM_GET_MSRS("ioctl(KVM_GET_MSRS)")
+            KVM_SET_CPUID2("ioctl(KVM_SET_CPUID2)")
+            KVM_SET_MSRS("ioctl(KVM_SET_MSRS)")
+
+        end
+    end
+    subgraph Host Userspace
+        direction LR
+
+        subgraph qemu["QEMU"]
+            subgraph qemucmdline["command line"]
+                machine_opt["-machine ..."]
+                global_opt["-global ..."]
+                cpu_opt["-cpu ..."]
+            end
+            subgraph Hardcoded data
+                direction TB
+                cpu_model_table["CPU model table"]
+                cpu_flag_names["CPU flag name table"]
                 qemu_machine_type_table["Machine type table"]
-                subgraph machinetype["machine type"]
-                    machine_compat_props["compat_props"]
-                end
-
-                pick_cpu_model("Select CPU model")
-                pick_machine_type("Select machine type")
-
-                qemu_cpu_model_table --> pick_cpu_model
-                cpu_opt --> pick_cpu_model
-                pick_cpu_model --> qemu_cpu_model
-
-                machine_opt --> pick_machine_type
-                qemu_machine_type_table --> pick_machine_type
-                pick_machine_type --> machinetype
-
-                qemu_cpu_model --> feature_words
-                machine_compat_props --> feature_words
-                global_opt --> feature_words
             end
-            KVM_GET_SUPPORTED_CPUID --> feature_words
-            KVM_GET_MSRS --> feature_words
-            feature_words --> KVM_SET_CPUID2
-            feature_words --> KVM_SET_MSRS
-        end
-        subgraph VM
-            subgraph VCPU
-                vm_cpuid("CPUID instruction")
-                vm_rdmsr("RDMSR instruction")
-                KVM_SET_CPUID2 --> vcpu_cpuid_entries
-                KVM_SET_MSRS --> msr_fields
-                vcpu_cpuid_entries --> vm_cpuid
-                msr_fields --> vm_rdmsr
+
+            host_cpu_model["host cpu model"]
+
+            cpu_model["CPU model"]
+            subgraph qemucpu["VCPU object"]
+                direction TB
+                feature_words["feature_words[]"]
+                filtered_features["filtered_features[]"]
             end
+            subgraph machinetype["machine type"]
+                machine_compat_props["compat_props"]
+            end
+            cpu_global_props["cpu global properties"]
+
+            parse_cpu_opt("Parse -cpu option")
+            parse_globals("Parse -global option")
+
+            pick_cpu_model("Lookup CPU model")
+            pick_machine_type("Lookup machine type")
+
+            x86_cpu_get_supported_feature_word("x86_cpu_get_supported_feature_word()")
+
+            subgraph VCPU initialization sequence
+                direction TB
+                init_cpu("Initialize VCPU")
+                apply_globals("Apply global properties")
+                filter_features("Filter features")
+                kvm_arch_init_vcpu("kvm_arch_init_vcpu()")
+                init_cpu ~~~ apply_globals ~~~ filter_features ~~~ kvm_arch_init_vcpu
+            end
+
+            cpu_opt --> parse_cpu_opt
+            global_opt --> parse_globals
+
+            x86_cpu_get_supported_feature_word --> host_cpu_model
+            host_cpu_model --> pick_cpu_model
+
+            cpu_model_table --> pick_cpu_model
+            parse_cpu_opt --> pick_cpu_model
+            parse_cpu_opt --> cpu_global_props
+            parse_globals --> cpu_global_props
+            pick_cpu_model --> cpu_model
+
+            cpu_model --> init_cpu
+
+            cpu_flag_names --> apply_globals
+            cpu_global_props --> apply_globals
+
+            init_cpu --> feature_words
+            apply_globals --> feature_words
+
+            x86_cpu_get_supported_feature_word --> filter_features
+            filter_features --> feature_words
+            filter_features --> filtered_features
+            feature_words --> kvm_arch_init_vcpu
+
+            machine_opt --> pick_machine_type
+            qemu_machine_type_table --> pick_machine_type
+            pick_machine_type --> machinetype
+            machine_compat_props --> init_cpu
+
         end
+        KVM_GET_SUPPORTED_CPUID --> x86_cpu_get_supported_feature_word
+        KVM_GET_MSR_FEATURE_INDEX_LIST --> x86_cpu_get_supported_feature_word
+        KVM_GET_MSRS --> x86_cpu_get_supported_feature_word
+        kvm_arch_init_vcpu --> KVM_SET_CPUID2
+        kvm_arch_init_vcpu --> KVM_SET_MSRS
     end
 ```
 
+Highlights of the process:
+* **Feature names**: QEMU has its own feature name table. It normally matches the feature names used by the Linux kernel, but there are exceptions.
+* **Machine compat_props**: There's a subtle interaction between CPU models and machine types. Details below.
+* **Feature filtering**: QEMU filters out features not supported by the host.  Details below.
+* **Live migration**: the initialization process is **the same** when live migrating a VM from another host.  Details below.
+
+### Machine type compat properties
+
+Historically, QEMU used machine-type-provided compatibility properties to
+introduce changes in CPU models while keeping compatibility with older QEMU
+versions.  This meant the machine type chosen for the VM (controlled using the
+`-machine` option) would also affect CPU features visible to guests.  This
+breaks some assumptions encoded in the libvirt CPU model APIs, which don't take
+the machine type as input on CPU model introspection operations.
+
+Since QEMU 4.1 (Aug 2019), a new **version** of a CPU model is introduced when
+CPU model changes need to be introduced.  This ensures the selected machine type
+won't affect the CPU features seen by guests.
+
+
+### Feature filtering
+
+QEMU feature filtering is subtle.  It's one area where the default behavior of
+QEMU is not the safest one, but it never changed upstream due to fears of
+breaking compatibility with existing software.
+
+The default behavior of QEMU when a feature required by a CPU model or by a
+command line option is not supported by the host is to just print a warning but
+keep running.  This means the same QEMU command line can produce different results
+on different hosts. This has consequences for live migration safety (see next section).
+
+The safer behavior (refusing to run the VM if a feature is missing) can be
+enabled by using the `-cpu ...,enforce` command line option.
+
+
+### Live migration
+
+QEMU **does not send CPUID data in the live migration stream** when live
+migrating.  This has consequences for live migration safety, because any QEMU
+changes that affects the resulting CPUID data can make CPUID flags change during
+live migration, which may have unexpected consequences for guests.
+
+QEMU normally don't change guest-visible CPUID data accross QEMU versions, but
+the exceptions are:
+
+* **Feature filtering** (see above): when not using the `-cpu ...,enforce`
+  option, the same QEMU command line may result in different CPUID flags.
+* **-cpu host**: the `host` CPU model in QEMU will use KVM-provided host CPUID
+  data, which may change when live migrating to a different host.
+* **QEMU bugs**: if not careful about live migration compatibility it's easy to
+  introduce changes that affect CPUID flags in QEMU.  Bugs like these can go
+  undetected for a long time because there's no CPUID data validation during
+  live migration.
+
+
+## (WIP) How libvirt controls CPU features
 
 
 
