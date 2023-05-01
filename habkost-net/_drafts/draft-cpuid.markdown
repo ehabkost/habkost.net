@@ -582,9 +582,10 @@ Some of the reasons a feature might be filtered out by QEMU:
 ### Live migration
 
 QEMU **does not send CPUID data in the live migration stream** when live
-migrating.  This has consequences for live migration safety, because any QEMU
-changes that affects the resulting CPUID data can make CPUID flags change during
-live migration, which may have unexpected consequences for guests.
+migrating.  QEMU generates the CPUID data again on the migration destination.
+This has consequences for live migration safety, because any QEMU changes that
+affects the resulting CPUID data can make CPUID flags change during live
+migration, which may have unexpected consequences for guests.
 
 QEMU normally don't change guest-visible CPUID data accross QEMU versions, but
 the exceptions are:
