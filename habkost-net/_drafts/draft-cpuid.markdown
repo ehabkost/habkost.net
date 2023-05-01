@@ -14,7 +14,8 @@
       - [`/proc/cpuinfo`](#proccpuinfo)
     - [Virtualization and CPU features](#virtualization-and-cpu-features)
   - [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
-  - [(WIP) How KVM controls CPU features](#wip-how-kvm-controls-cpu-features)
+  - [How KVM controls CPU features](#how-kvm-controls-cpu-features)
+    - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
   - [(WIP) How QEMU controls CPU features](#wip-how-qemu-controls-cpu-features)
     - [Machine type compat properties](#machine-type-compat-properties)
     - [Feature filtering](#feature-filtering)
@@ -308,7 +309,7 @@ Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.or
 * Not every flag in cpuinfo_x86 and /proc/cpuinfo correspond to a single flag in CPUID or a MSR
 * Flags can be disabled in cpuinfo_x86 even if hardware supports them
 
-## (WIP) How KVM controls CPU features
+## How KVM controls CPU features
 
 The following diagram shows the *data flow* between multiple steps of VCPU
 initialization in KVM:
@@ -400,6 +401,23 @@ The diagram is pretty complex, but the most important ideas are:
   through the `KVM_GET_SUPPORTED_CPUID`, `KVM_GET_MSR_FEATURE_INDEX_LIST` and
   `KVM_GET_MSRS` ioctls is the result of multiple layers of filtering done by
   the kernel.
+
+
+The documentation for the KVM API (including the ioctls shown in the diagram
+above) can be found at
+<https://docs.kernel.org/virt/kvm/api.html#kvm-get-supported-cpuid>.
+
+
+### The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`
+
+Most of the features returned by `KVM_GET_SUPPORTED_CPUID` are features
+supported by *both* host hardware and by KVM.  However, it's possible for some
+features to be enabled efficiently even if the host CPU doesn't support them.
+In those cases, the feature will still be returned by `KVM_GET_SUPPORTED_CPUID`.
+The most common example of this is the `x2apic` feature, that is entirely
+implemented by the KVM APIC emulation code, and doesn't require host hardware
+support.
+
 
 ## (WIP) How QEMU controls CPU features
 
@@ -580,7 +598,8 @@ the exceptions are:
 
 
 
-[kvm-cpuid-doc]: https://www.kernel.org/doc/Documentation/virtual/kvm/cpuid.txt
+[kvm-cpuid-doc]: https://docs.kernel.org/virt/kvm/x86/cpuid.html
+[kvm-api-doc]: https://docs.kernel.org/virt/kvm/api.html
 [intel-sdm]: https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html "Intel 64 and IA-32 Architectures
 Software Developer’s Manual"
 [amd-cpuid]: https://www.amd.com/system/files/TechDocs/25481.pdf "AMD CPUID Specification"
