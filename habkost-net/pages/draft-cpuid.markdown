@@ -309,8 +309,8 @@ expected, guest software will break.
 
 ## Overview
 
-The following diagram shows the *data flow* between multiple steps of VCPU
-initialization in KVM:
+The following diagram shows the *data flow* between relevant KVM ioctls
+related to CPU feature configuration:
 
 ```mermaid
 flowchart TB
@@ -389,18 +389,16 @@ flowchart TB
 
 The diagram is pretty complex, but the most important ideas are:
 
-* **QEMU is in control**: QEMU is 100% in control of what CPU features are
-  exposed to the guest.  KVM will only provide the data QEMU needs through a few
-  `ioctl()` calls.
+* **QEMU is in control**: QEMU is 100% in control of which
+  CPU features are reported to the guest, using the `KVM_SET_CPUID2` and
+  `KVM_SET_MSRS` ioctls.
 * **Data exposed to QEMU is already filtered**: the CPUID and MSR data exposed
   through the `KVM_GET_SUPPORTED_CPUID`, `KVM_GET_MSR_FEATURE_INDEX_LIST` and
   `KVM_GET_MSRS` ioctls is the result of multiple layers of filtering done by
   the kernel.
 
-
-The documentation for the KVM API (including the ioctls shown in the diagram
-above) can be found at
-<https://docs.kernel.org/virt/kvm/api.html#kvm-get-supported-cpuid>.
+The documentation for the KVM API (including the ioctls mentioned above) can be
+found at <https://docs.kernel.org/virt/kvm/api.html>.
 
 
 ## The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`
@@ -549,9 +547,9 @@ behavior of QEMU is not the safest or most appropriate, but it never changed
 upstream due to fears of breaking compatibility with existing software.
 
 The default behavior of QEMU when a feature is requested but not supported by
-the host is to just **print a warning but keep running**.  This means the same
-QEMU command line can produce different results on different hosts. This has
-consequences for live migration safety (see next section).
+the host is to just **disable the feature, print a warning, and keep running**.
+This means the same QEMU command line can produce different results on different
+hosts. This has consequences for live migration safety (see next section).
 
 The safer behavior (refusing to run the VM if a feature is missing) can be
 enabled by using the `-cpu ...,enforce` command line option.
