@@ -194,7 +194,6 @@ The official documentation for MSRs can be found at:
 
 ### Userspace visibility of CPU features
 
-Userspace doesn't have the same visibility as the kernel into CPU features.
 Different mechanisms are available to userspace to get information about CPU
 features:
 
