@@ -62,13 +62,6 @@ The output values corresponding to a specific EAX input value are often called
 *sub-leaves*. When this guide refers to a specific register or specific bits of
 a specific register, they will be refered as *CPUID fields*.
 
-This guide follows a the same notation as the Intel manuals to refer to CPUID
-fields.  As an example, `CPUID.01H:EDX.SSE[bit 25]` represents:
-* `01H`: the input value for the EAX register
-* `EDX`: the output register
-* `SSE`: the field or feature name
-* `bit 25`: the bit number in the output register
-
 
 ### Official documentation for CPUID fields
 
