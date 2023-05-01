@@ -28,21 +28,23 @@
 
 ## The basics: CPUID and MSR
 
+*If you are already familiar with the CPUID instruction and x86 MSRs, you can
+skip this section.*
+
 There are two main CPU identification and feature enumeration mechanisms in x86
 that are covered by this guide: the `CPUID` instruction and *Model
 Specific Registers* (MSRs).
 
 ### `CPUID` instruction
 
-The `CPUID` instruction has a very simple interface. Quoting the [Intel
-documentation][intel-sdm]:
+The `CPUID` instruction has a very simple interface. It can be seen as a
+function that takes two 32-bit inputs (EAX and ECX) and returns four outputs
+(EAX, EBX, ECX and EDX). Quoting the [Intel documentation][intel-sdm]:
 
 > CPUID returns processor identification and feature information in the EAX,
 EBX, ECX, and EDX registers.1 The instruction’s output is dependent on the
 contents of the EAX register upon execution (in some cases, ECX as well). [...]
 
-It can be seen as a function that takes two inputs (EAX and ECX) and returns
-four outputs (EAX, EBX, ECX and EDX).
 
 With very few exceptions, information returned by `CPUID` is constant for a
 given processor, and don't change at runtime[^changing-cpuid].
@@ -52,10 +54,10 @@ change `CPUID` data seen by guest software inside a virtual machine at runtime.
 However, this can make guest software crash or misbehave, and on most
 circumstances that would be considered a hypervisor bug.
 
-The `CPUID` output values corresponding to a specific EAX input value are often
-called *CPUID leaves*.  Values that depend on both EAX and ECX input are often
-called *sub-leaves*. When this guide refers to a specific register or specific
-bits of a specific register, they will be refered as *CPUID fields*.
+The output values corresponding to a specific EAX input value are often called
+*CPUID leaves*.  Values that depend on both EAX and ECX input are often called
+*sub-leaves*. When this guide refers to a specific register or specific bits of
+a specific register, they will be refered as *CPUID fields*.
 
 This guide follows a the same notation as the Intel manuals to refer to CPUID
 fields.  As an example, `CPUID.01H:EDX.SSE[bit 25]` represents:
