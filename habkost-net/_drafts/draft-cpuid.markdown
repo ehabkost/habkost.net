@@ -523,10 +523,15 @@ flowchart TB
 ```
 
 Highlights of the process:
-* **Feature names**: QEMU has its own feature name table. It normally matches the feature names used by the Linux kernel, but there are exceptions.
-* **Machine compat_props**: There's a subtle interaction between CPU models and machine types. Details below.
-* **Feature filtering**: QEMU filters out features not supported by the host.  Details below.
-* **Live migration**: the initialization process is **the same** when live migrating a VM from another host.  Details below.
+* **Feature names**: QEMU has its own feature name table. It normally matches
+  the feature names used by the Linux kernel, but there are exceptions.
+* **Machine compat_props**: There's a subtle interaction between CPU models and
+  machine types. Details below.
+* **Feature filtering**: QEMU filters out features not supported by the host.
+  Details below.
+* **Live migration**: the initialization process is **the same** when live
+  migrating a VM from another host.  This has some consequences for live
+  migration safety.  Details below.
 
 ### Machine type compat properties
 
