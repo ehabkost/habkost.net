@@ -595,11 +595,15 @@ the exceptions are:
 * **Feature filtering** (see above): when not using the `-cpu ...,enforce`
   option, the same QEMU command line may result in different CPUID flags.
 * **-cpu host**: the `host` CPU model in QEMU will use KVM-provided host CPUID
-  data, which may change when live migrating to a different host.
+  data, which may change when live migrating to a different host[^host-migration].
 * **QEMU bugs**: if not careful about live migration compatibility it's easy to
   introduce changes that affect CPUID flags in QEMU.  Bugs like these can go
   undetected for a long time because there's no CPUID data validation during
   live migration.
+
+[^host-migration]: In theory, live migration using `-cpu host` can work if
+    strict conditions are met.  In practice, it's very easy to break and it's
+    discouraged.
 
 
 # (TODO) How libvirt controls CPU features
