@@ -462,7 +462,7 @@ flowchart TB
                 apply_globals("Apply global properties")
                 filter_features("Filter features")
                 kvm_arch_init_vcpu("kvm_arch_init_vcpu()")
-                init_cpu ~~~ apply_globals ~~~ filter_features ~~~ kvm_arch_init_vcpu
+                init_cpu -.-> apply_globals -.-> filter_features -.-> kvm_arch_init_vcpu
             end
 
             cpu_opt --> parse_cpu_opt
