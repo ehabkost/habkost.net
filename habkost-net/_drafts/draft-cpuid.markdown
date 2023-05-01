@@ -1,33 +1,35 @@
-# KVM and CPU identification in x86
-
-- [KVM and CPU identification in x86](#kvm-and-cpu-identification-in-x86)
-  - [The basics: CPUID and MSR](#the-basics-cpuid-and-msr)
-    - [`CPUID` instruction](#cpuid-instruction)
-      - [Official documentation for CPUID fields](#official-documentation-for-cpuid-fields)
-      - [Visualizing CPUID data](#visualizing-cpuid-data)
-    - [MSRs (Model Specific Registers)](#msrs-model-specific-registers)
-      - [Visualizing MSR data](#visualizing-msr-data)
-      - [Official documentation for MSRs](#official-documentation-for-msrs)
-    - [Userspace visibility of CPU features](#userspace-visibility-of-cpu-features)
-      - [`CPUID` instruction](#cpuid-instruction-1)
-      - [MSRs](#msrs)
-      - [`/proc/cpuinfo`](#proccpuinfo)
-    - [Virtualization and CPU features](#virtualization-and-cpu-features)
-  - [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
-  - [How KVM controls CPU features](#how-kvm-controls-cpu-features)
-    - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
-  - [How QEMU controls CPU features](#how-qemu-controls-cpu-features)
-    - [Machine type compat properties](#machine-type-compat-properties)
-    - [Feature filtering](#feature-filtering)
-    - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
-    - [Live migration](#live-migration)
-  - [(TODO) How libvirt controls CPU features](#todo-how-libvirt-controls-cpu-features)
+---
+layout: page
+permalink: /docs/kvm/cpuid-guide.html
+title: KVM and CPU identification in x86
+---
+- [The basics: CPUID and MSR](#the-basics-cpuid-and-msr)
+  - [`CPUID` instruction](#cpuid-instruction)
+    - [Official documentation for CPUID fields](#official-documentation-for-cpuid-fields)
+    - [Visualizing CPUID data](#visualizing-cpuid-data)
+  - [MSRs (Model Specific Registers)](#msrs-model-specific-registers)
+    - [Visualizing MSR data](#visualizing-msr-data)
+    - [Official documentation for MSRs](#official-documentation-for-msrs)
+  - [Userspace visibility of CPU features](#userspace-visibility-of-cpu-features)
+    - [`CPUID` instruction](#cpuid-instruction-1)
+    - [MSRs](#msrs)
+    - [`/proc/cpuinfo`](#proccpuinfo)
+  - [Virtualization and CPU features](#virtualization-and-cpu-features)
+- [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
+- [How KVM controls CPU features](#how-kvm-controls-cpu-features)
+  - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
+- [How QEMU controls CPU features](#how-qemu-controls-cpu-features)
+  - [Machine type compat properties](#machine-type-compat-properties)
+  - [Feature filtering](#feature-filtering)
+  - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
+  - [Live migration](#live-migration)
+- [(TODO) How libvirt controls CPU features](#todo-how-libvirt-controls-cpu-features)
 - [Drafts/notes](#draftsnotes)
-  - [Types of features](#types-of-features)
-    - [Boolean CPUID flags](#boolean-cpuid-flags)
+- [Types of features](#types-of-features)
+  - [Boolean CPUID flags](#boolean-cpuid-flags)
 
 
-## The basics: CPUID and MSR
+# The basics: CPUID and MSR
 
 *If you are already familiar with the CPUID instruction and x86 MSRs, you can
 skip this section.*
@@ -36,7 +38,7 @@ There are two main CPU identification and feature enumeration mechanisms in x86
 that are covered by this guide: the `CPUID` instruction and *Model
 Specific Registers* (MSRs).
 
-### `CPUID` instruction
+## `CPUID` instruction
 
 The `CPUID` instruction has a very simple interface. It can be seen as a
 function that takes two 32-bit inputs (EAX and ECX) and returns four outputs
@@ -68,7 +70,7 @@ fields.  As an example, `CPUID.01H:EDX.SSE[bit 25]` represents:
 * `bit 25`: the bit number in the output register
 
 
-#### Official documentation for CPUID fields
+### Official documentation for CPUID fields
 
 The official documentation for CPUID fields can be found at:
 
@@ -77,7 +79,7 @@ The official documentation for CPUID fields can be found at:
 * For KVM virtual CPUs: [KVM CPUID documentation][kvm-cpuid-doc] (more details on this later)
 
 
-#### Visualizing CPUID data
+### Visualizing CPUID data
 
 The [x86info tool][x86info-tool] can be used to visualize CPUID data from your
 processor.  Here's an example:
@@ -149,7 +151,7 @@ Total processor threads: 16
 This system has 1 eight-core processor with hyper-threading (2 threads per core) running at an estimated 2.50GHz
 ```
 
-### MSRs (Model Specific Registers)
+## MSRs (Model Specific Registers)
 
 x86 CPUs have a set of registers called *model-specific registers* (MSRs), which
 can be read using the `RDMSR` instruction.  Despite their name, some of these
@@ -173,7 +175,7 @@ fields describing CPU capabilities, such as:
   * `IA32_VMX_TRUE_ENTRY_CTLS`
 
 
-#### Visualizing MSR data
+### Visualizing MSR data
 
 There are tools that will show the contents of *some* MSRs in a human-readable
 format. For example:
@@ -185,7 +187,7 @@ The `rdmsr` tool from the [msr-tools] project can be used to read arbirary MSRs,
 but it is a low level tool that requires looking up the MSR numbers in the CPU
 documentation.
 
-#### Official documentation for MSRs
+### Official documentation for MSRs
 
 The official documentation for MSRs can be found at:
 
@@ -193,12 +195,12 @@ The official documentation for MSRs can be found at:
 * For AMD CPUs: Appendix A: MSR Cross-Reference of the [AMD64 Architecture Programmer’s Manual][amd-manual]
 
 
-### Userspace visibility of CPU features
+## Userspace visibility of CPU features
 
 Different mechanisms are available to userspace to get information about CPU
 features:
 
-#### `CPUID` instruction
+### `CPUID` instruction
 
 Userspace is able to execute the `CPUID` instruction, with no special privileges
 required, and the same data is available to userspace as to the
@@ -207,7 +209,7 @@ require any special privileges to work.
 
 [^cpuid-fault]: CPUID faulting and [ARCH_SET_CPUID](https://github.com/torvalds/linux/commit/e9ea1e7f53b852147cbd568b0568c7ad97ec21a3) makes this a bit more complicated, but I'm ignoring that for now.
 
-#### MSRs
+### MSRs
 
 The `RDMSR` instruction only works at privilege level 0, so userspace can't
 execute it directly.  However, software like `msr-tools` and `x86info` can read
@@ -215,7 +217,7 @@ MSRs using the special devices at `/dev/cpu/*/msr` if they have the right
 permissions.
 
 
-#### `/proc/cpuinfo`
+### `/proc/cpuinfo`
 
 The `/proc/cpuinfo` file is probably the most popular and obvious way to get
 most information about CPU features in Linux.  Example output:
@@ -256,7 +258,7 @@ flags` and `bugs`.  We'll discuss how `/proc/cpuinfo` works in more detail
 later.
 
 
-### Virtualization and CPU features
+## Virtualization and CPU features
 
 When running a virtual machine in x86 using KVM, the following things are
 different from regular bare metal `CPUID` and `RDMSR`:
@@ -279,7 +281,7 @@ expected, guest software will break.
     SDM][intel-sdm] for low-level details.
 
 
-## How the Linux kernel keeps track of CPU features
+# How the Linux kernel keeps track of CPU features
 
 ```mermaid
 flowchart TB
@@ -309,7 +311,7 @@ Details are documented at [Documentation/x86/cpuinfo.rst](https://docs.kernel.or
 * Not every flag in cpuinfo_x86 and /proc/cpuinfo correspond to a single flag in CPUID or a MSR
 * Flags can be disabled in cpuinfo_x86 even if hardware supports them
 
-## How KVM controls CPU features
+# How KVM controls CPU features
 
 The following diagram shows the *data flow* between multiple steps of VCPU
 initialization in KVM:
@@ -408,7 +410,7 @@ above) can be found at
 <https://docs.kernel.org/virt/kvm/api.html#kvm-get-supported-cpuid>.
 
 
-### The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`
+## The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`
 
 Most of the features returned by `KVM_GET_SUPPORTED_CPUID` are features
 supported by *both* host hardware and by KVM.  However, it's possible for some
@@ -419,7 +421,7 @@ implemented by the KVM APIC emulation code, and doesn't require host hardware
 support.
 
 
-## How QEMU controls CPU features
+# How QEMU controls CPU features
 
 The following diagram shows the *data flow* between multiple stages of the
 initialization of VCPU features by QEMU:
@@ -533,7 +535,7 @@ Highlights of the process:
   migrating a VM from another host.  This has some consequences for live
   migration safety.  Details below.
 
-### Machine type compat properties
+## Machine type compat properties
 
 Historically, QEMU used machine-type-provided compatibility properties to
 introduce changes in CPU models while keeping compatibility with older QEMU
@@ -547,7 +549,7 @@ CPU model changes need to be introduced.  This ensures the selected machine type
 won't affect the CPU features seen by guests.
 
 
-### Feature filtering
+## Feature filtering
 
 QEMU feature filtering is subtle.  It's one of the areas where the default
 behavior of QEMU is not the safest or most appropriate, but it never changed
@@ -561,7 +563,7 @@ consequences for live migration safety (see next section).
 The safer behavior (refusing to run the VM if a feature is missing) can be
 enabled by using the `-cpu ...,enforce` command line option.
 
-### What can make a feature be filtered out?
+## What can make a feature be filtered out?
 
 Some of the reasons a feature might be filtered out by QEMU:
 
@@ -579,7 +581,7 @@ Some of the reasons a feature might be filtered out by QEMU:
     * QEMU doesn't support live migration with the feature yet.
 
 
-### Live migration
+## Live migration
 
 QEMU **does not send CPUID data in the live migration stream** when live
 migrating.  QEMU generates the CPUID data again on the migration destination.
@@ -600,7 +602,7 @@ the exceptions are:
   live migration.
 
 
-## (TODO) How libvirt controls CPU features
+# (TODO) How libvirt controls CPU features
 
 TODO.
 
@@ -621,9 +623,9 @@ Software Developer’s Manual"
 # Drafts/notes
 
 
-## Types of features
+# Types of features
 
-### Boolean CPUID flags
+## Boolean CPUID flags
 
 The *meaning* of CPUID fields depend on the EAX and ECX input values.  The most
 relevant CPUID fields for this guide are:
