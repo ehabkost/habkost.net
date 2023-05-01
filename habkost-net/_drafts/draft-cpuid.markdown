@@ -16,7 +16,7 @@
   - [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
   - [How KVM controls CPU features](#how-kvm-controls-cpu-features)
     - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
-  - [(WIP) How QEMU controls CPU features](#wip-how-qemu-controls-cpu-features)
+  - [How QEMU controls CPU features](#how-qemu-controls-cpu-features)
     - [Machine type compat properties](#machine-type-compat-properties)
     - [Feature filtering](#feature-filtering)
     - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
@@ -419,7 +419,7 @@ implemented by the KVM APIC emulation code, and doesn't require host hardware
 support.
 
 
-## (WIP) How QEMU controls CPU features
+## How QEMU controls CPU features
 
 The following diagram shows the *data flow* between multiple stages of the
 initialization of VCPU features by QEMU:
@@ -601,6 +601,7 @@ the exceptions are:
 
 ## (WIP) How libvirt controls CPU features
 
+TODO.
 
 
 [kvm-cpuid-doc]: https://docs.kernel.org/virt/kvm/x86/cpuid.html
