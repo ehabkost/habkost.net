@@ -21,7 +21,7 @@
     - [Feature filtering](#feature-filtering)
     - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
     - [Live migration](#live-migration)
-  - [(WIP) How libvirt controls CPU features](#wip-how-libvirt-controls-cpu-features)
+  - [(TODO) How libvirt controls CPU features](#todo-how-libvirt-controls-cpu-features)
 - [Drafts/notes](#draftsnotes)
       - [Meaning of CPUID fields](#meaning-of-cpuid-fields)
   - [TODO](#todo)
@@ -599,7 +599,7 @@ the exceptions are:
   live migration.
 
 
-## (WIP) How libvirt controls CPU features
+## (TODO) How libvirt controls CPU features
 
 TODO.
 
