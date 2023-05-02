@@ -24,7 +24,16 @@ title: KVM and CPU identification in x86
   - [Feature filtering](#feature-filtering)
   - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
   - [Live migration](#live-migration)
-- [(TODO) How libvirt controls CPU features](#todo-how-libvirt-controls-cpu-features)
+  - [Visualizing QEMU's view of CPU flags](#visualizing-qemus-view-of-cpu-flags)
+- [How libvirt controls CPU features](#how-libvirt-controls-cpu-features)
+  - [libvirt APIs related to CPU model/features](#libvirt-apis-related-to-cpu-modelfeatures)
+  - [Caveats](#caveats)
+    - [libvirt API is not QEMU-specific nor KVM-specific](#libvirt-api-is-not-qemu-specific-nor-kvm-specific)
+    - [libvirt's own CPU model definitions](#libvirts-own-cpu-model-definitions)
+    - [libvirt's own feature name definitiosn](#libvirts-own-feature-name-definitiosn)
+    - [Features hidden behind a CPU model](#features-hidden-behind-a-cpu-model)
+    - [Enabling `-cpu ...,enforce`](#enabling--cpu-enforce)
+    - [Backwards compatibility and non-optimal defaults](#backwards-compatibility-and-non-optimal-defaults)
 - [Drafts/notes](#draftsnotes)
 - [Types of features](#types-of-features)
   - [Boolean CPUID flags](#boolean-cpuid-flags)
@@ -602,15 +611,90 @@ the exceptions are:
     strict conditions are met.  In practice, it's very easy to break and it's
     discouraged.
 
+## Visualizing QEMU's view of CPU flags
 
-# (TODO) How libvirt controls CPU features
+TODO: describe a simple way to query for info from the `max` CPU model using QMP.
 
-TODO.
 
-Items to include:
+# How libvirt controls CPU features
 
-* libvirt cpu_map.xml
-* libvirt domain XML
+## libvirt APIs related to CPU model/features
+
+The main reference for configuring CPU model for a VM in libvirt is at:
+https://libvirt.org/formatdomain.html#cpu-model-and-topology
+
+For querying information about CPU models and features, there are multiple
+mechanisms available:
+
+* [virConnectBaselineHypervisorCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineHypervisorCPU) for querying hypervisor CPU model and features.
+* [virConnectBaselineCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU) which is an old function that is not likely to be useful.
+* The [VIR_DOMAIN_XML_UPDATE_CPU](https://libvirt.org/html/libvirt-libvirt-domain.html#VIR_DOMAIN_XML_UPDATE_CPU) flag at [virDomainGetXMLDesc](https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetXMLDesc) can be used to check which CPU model and features were actually enabled for a VM.
+
+
+## Caveats
+
+
+### libvirt API is not QEMU-specific nor KVM-specific
+
+libvirt tries very hard to be a generic API for virtualization, which means the
+semantics of CPU models and features often won't match QEMU's behavior
+exactly.
+
+
+### libvirt's own CPU model definitions
+
+libvirt has its own CPU model definitions, which are normally stored in
+`/usr/share/libvirt/cpu_map`.  libvirt's documentation states:
+
+> The list of available CPU models and their definition can be found in
+> directory cpu_map, installed in libvirt's data directory. If a hypervisor is
+> not able to use the exact CPU model, libvirt automatically falls back to a
+> closest model supported by the hypervisor while maintaining the list of CPU
+> features.
+
+The documentation isn't clear on what happens if libvirt and QEMU disagree on
+the exact definition of a CPU model.
+
+
+### libvirt's own feature name definitiosn
+
+The feature name supported by libvirt are also stored in the `cpu_map`
+directory.  The names used by libvirt and QEMU normally match, but this isn't
+always guaranteed.  Also, some features may be not present in libvirt's
+`cpu_map` list and can't be controlled by libvirt.
+
+The lack of a feature name in libvirt's `cpu_map` makes it difficult for libvirt
+to report when those features are filtered out by QEMU.
+
+
+### Features hidden behind a CPU model
+
+Many of the libvirt APIs that return CPU model information won't return feature
+names explicitly if they are already considered part of the CPU model.  This is
+normally not a problem when libvirt and QEMU agree on the CPU model definition,
+but it can make the data ambiguous or incomplete when they disagree.
+
+See https://libvirt.org/html/libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES at https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU for possible mechanisms to work around this.
+
+
+### Enabling `-cpu ...,enforce`
+
+There's no obvious way to enable the `-cpu ...,enforce` QEMU option using libvirt.
+
+In theory, it should be possible to enable equivalent behavior in libvirt by
+using the `match` or `check` attributes in [libvirt's `cpu`
+element](https://libvirt.org/formatdomain.html#cpu-model-and-topology), but the
+documentation is not entirely clear.
+
+
+### Backwards compatibility and non-optimal defaults
+
+Most of the non-obvious behavior of libvirt can be explained by backwards
+compatibility guarantees.  Sometimes it's not possible to change libvirt's
+existing behavior without breaking existing code, and new behavior needs to be
+explicitly enabled by new attributes or flags.
+
+
 
 [kvm-cpuid-doc]: https://docs.kernel.org/virt/kvm/x86/cpuid.html
 [kvm-api-doc]: https://docs.kernel.org/virt/kvm/api.html
