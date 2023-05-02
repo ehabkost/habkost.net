@@ -686,7 +686,12 @@ names explicitly if they are already considered part of the CPU model.  This is
 normally not a problem when libvirt and QEMU agree on the CPU model definition,
 but it can make the data ambiguous or incomplete when they disagree.
 
-See https://libvirt.org/html/libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES at https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU for possible mechanisms to work around this.
+The
+[VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES](https://libvirt.org/html/libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)
+flag at
+[virConnectBaselineCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU)
+is supposed to help work around this, but the documentation is not clear on what
+happens if libvirt and QEMU disagree on the CPU model definition.
 
 
 ### Enabling `-cpu ...,enforce`
