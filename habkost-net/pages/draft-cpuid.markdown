@@ -3,43 +3,43 @@ layout: page
 permalink: /docs/kvm-cpuid-guide.html
 title: KVM and CPU identification in x86
 ---
-- [The basics: CPUID and MSR](#the-basics-cpuid-and-msr)
-  - [`CPUID` instruction](#cpuid-instruction)
-    - [Official documentation for CPUID fields](#official-documentation-for-cpuid-fields)
-    - [Visualizing CPUID data](#visualizing-cpuid-data)
-  - [MSRs (Model Specific Registers)](#msrs-model-specific-registers)
-    - [Visualizing MSR data](#visualizing-msr-data)
-    - [Official documentation for MSRs](#official-documentation-for-msrs)
-  - [Userspace visibility of CPU features](#userspace-visibility-of-cpu-features)
-    - [`CPUID` instruction](#cpuid-instruction-1)
-    - [MSRs](#msrs)
-    - [`/proc/cpuinfo`](#proccpuinfo)
-- [How the Linux kernel keeps track of CPU features](#how-the-linux-kernel-keeps-track-of-cpu-features)
-- [How KVM controls CPU features](#how-kvm-controls-cpu-features)
-  - [Differences to bare metal](#differences-to-bare-metal)
-  - [Overview](#overview)
-  - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`](#the-meaning-of-supported-in-kvm_get_supported_cpuid)
-- [How QEMU controls CPU features](#how-qemu-controls-cpu-features)
-  - [Machine type compat properties](#machine-type-compat-properties)
-  - [Feature filtering](#feature-filtering)
-  - [What can make a feature be filtered out?](#what-can-make-a-feature-be-filtered-out)
-  - [Live migration](#live-migration)
-  - [Visualizing QEMU's view of CPU flags](#visualizing-qemus-view-of-cpu-flags)
-- [How libvirt controls CPU features](#how-libvirt-controls-cpu-features)
-  - [libvirt APIs related to CPU model/features](#libvirt-apis-related-to-cpu-modelfeatures)
-  - [Caveats](#caveats)
-    - [libvirt API is not QEMU-specific nor KVM-specific](#libvirt-api-is-not-qemu-specific-nor-kvm-specific)
-    - [libvirt's own CPU model definitions](#libvirts-own-cpu-model-definitions)
-    - [libvirt's own feature name definitiosn](#libvirts-own-feature-name-definitiosn)
-    - [Features hidden behind a CPU model](#features-hidden-behind-a-cpu-model)
-    - [Enabling `-cpu ...,enforce`](#enabling--cpu-enforce)
-    - [Backwards compatibility and non-optimal defaults](#backwards-compatibility-and-non-optimal-defaults)
+- [The basics: CPUID and MSR {#basics}](#the-basics-cpuid-and-msr-basics)
+  - [`CPUID` instruction {#cpuid}](#cpuid-instruction-cpuid)
+    - [Official documentation for CPUID fields {#cpuid-docs}](#official-documentation-for-cpuid-fields-cpuid-docs)
+    - [Visualizing CPUID data {#visualizing-cpuid}](#visualizing-cpuid-data-visualizing-cpuid)
+  - [MSRs (Model Specific Registers) {#msrs}](#msrs-model-specific-registers-msrs)
+    - [Visualizing MSR data {#visualizing-msrs}](#visualizing-msr-data-visualizing-msrs)
+    - [Official documentation for MSRs {#msr-docs}](#official-documentation-for-msrs-msr-docs)
+  - [Userspace visibility of CPU features {#userspace-visibility}](#userspace-visibility-of-cpu-features-userspace-visibility)
+    - [`CPUID` instruction {#cpuid-userspace}](#cpuid-instruction-cpuid-userspace)
+    - [MSRs {#msrs-userspace}](#msrs-msrs-userspace)
+    - [`/proc/cpuinfo` {#proc-cpuinfo}](#proccpuinfo-proc-cpuinfo)
+- [How the Linux kernel keeps track of CPU features {#linux-cpuinfo}](#how-the-linux-kernel-keeps-track-of-cpu-features-linux-cpuinfo)
+- [How KVM controls CPU features {#kvm-cpu-features}](#how-kvm-controls-cpu-features-kvm-cpu-features)
+  - [Differences to bare metal {#kvm-differences-to-baremetal}](#differences-to-bare-metal-kvm-differences-to-baremetal)
+  - [Overview {#kvm-cpu-features-overview}](#overview-kvm-cpu-features-overview)
+  - [The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID` {#kvm-meaning-of-KVM\_GET\_SUPPORTED\_CPUID}](#the-meaning-of-supported-in-kvm_get_supported_cpuid-kvm-meaning-of-kvm_get_supported_cpuid)
+- [How QEMU controls CPU features {#qemu-cpu-features}](#how-qemu-controls-cpu-features-qemu-cpu-features)
+  - [Machine type compat properties {#qemu-machine-type-compat-props}](#machine-type-compat-properties-qemu-machine-type-compat-props)
+  - [Feature filtering {#qemu-feature-filtering}](#feature-filtering-qemu-feature-filtering)
+  - [What can make a feature be filtered out? {#qemu-feature-filtering-reasons}](#what-can-make-a-feature-be-filtered-out-qemu-feature-filtering-reasons)
+  - [Live migration {#qemu-live-migration}](#live-migration-qemu-live-migration)
+  - [Visualizing QEMU's view of CPU flags {#qemu-visualizing}](#visualizing-qemus-view-of-cpu-flags-qemu-visualizing)
+- [How libvirt controls CPU features {#libvirt-cpu-features}](#how-libvirt-controls-cpu-features-libvirt-cpu-features)
+  - [libvirt APIs related to CPU model/features {#libvirt-cpu-apis}](#libvirt-apis-related-to-cpu-modelfeatures-libvirt-cpu-apis)
+  - [Caveats {#libvirt-caveats}](#caveats-libvirt-caveats)
+    - [libvirt API is not QEMU-specific nor KVM-specific {#libvirt-generic-api}](#libvirt-api-is-not-qemu-specific-nor-kvm-specific-libvirt-generic-api)
+    - [libvirt's own CPU model definitions {#libvirt-cpu-models}](#libvirts-own-cpu-model-definitions-libvirt-cpu-models)
+    - [libvirt's own feature name definitios {#libvirt-feature-names}](#libvirts-own-feature-name-definitios-libvirt-feature-names)
+    - [Features hidden behind a CPU model {#libvirt-features-hidden-by-cpu-model}](#features-hidden-behind-a-cpu-model-libvirt-features-hidden-by-cpu-model)
+    - [Enabling `-cpu ...,enforce` {#libvirt-cpu-enforce}](#enabling--cpu-enforce-libvirt-cpu-enforce)
+    - [Backwards compatibility and non-optimal defaults {#libvirt-backwards-compatibility}](#backwards-compatibility-and-non-optimal-defaults-libvirt-backwards-compatibility)
 - [Drafts/notes](#draftsnotes)
 - [Types of features](#types-of-features)
   - [Boolean CPUID flags](#boolean-cpuid-flags)
 
 
-# The basics: CPUID and MSR
+# The basics: CPUID and MSR {#basics}
 
 *If you are already familiar with the CPUID instruction and x86 MSRs, you can
 skip this section.*
@@ -48,7 +48,7 @@ There are two main CPU identification and feature enumeration mechanisms in x86
 that are covered by this guide: the `CPUID` instruction and *Model
 Specific Registers* (MSRs).
 
-## `CPUID` instruction
+## `CPUID` instruction {#cpuid}
 
 The `CPUID` instruction has a very simple interface. It can be seen as a
 function that takes two 32-bit inputs (EAX and ECX) and returns four outputs
@@ -73,7 +73,7 @@ The output values corresponding to a specific EAX input value are often called
 a specific register, they will be refered as *CPUID fields*.
 
 
-### Official documentation for CPUID fields
+### Official documentation for CPUID fields {#cpuid-docs}
 
 The official documentation for CPUID fields can be found at:
 
@@ -82,7 +82,7 @@ The official documentation for CPUID fields can be found at:
 * For KVM virtual CPUs: [KVM CPUID documentation][kvm-cpuid-doc] (more details on this later)
 
 
-### Visualizing CPUID data
+### Visualizing CPUID data {#visualizing-cpuid}
 
 The [x86info tool][x86info-tool] can be used to visualize CPUID data from your
 processor.  Here's an example:
@@ -154,7 +154,7 @@ Total processor threads: 16
 This system has 1 eight-core processor with hyper-threading (2 threads per core) running at an estimated 2.50GHz
 ```
 
-## MSRs (Model Specific Registers)
+## MSRs (Model Specific Registers) {#msrs}
 
 x86 CPUs have a set of registers called *model-specific registers* (MSRs), which
 can be read using the `RDMSR` instruction.  Despite their name, some of these
@@ -178,7 +178,7 @@ fields describing CPU capabilities, such as:
   * `IA32_VMX_TRUE_ENTRY_CTLS`
 
 
-### Visualizing MSR data
+### Visualizing MSR data {#visualizing-msrs}
 
 There are tools that will show the contents of *some* MSRs in a human-readable
 format. For example:
@@ -190,7 +190,7 @@ The `rdmsr` tool from the [msr-tools] project can be used to read arbirary MSRs,
 but it is a low level tool that requires looking up the MSR numbers in the CPU
 documentation.
 
-### Official documentation for MSRs
+### Official documentation for MSRs {#msr-docs}
 
 The official documentation for MSRs can be found at:
 
@@ -198,12 +198,12 @@ The official documentation for MSRs can be found at:
 * For AMD CPUs: Appendix A: MSR Cross-Reference of the [AMD64 Architecture Programmer’s Manual][amd-manual]
 
 
-## Userspace visibility of CPU features
+## Userspace visibility of CPU features {#userspace-visibility}
 
 Different mechanisms are available to userspace to get information about CPU
 features:
 
-### `CPUID` instruction
+### `CPUID` instruction {#cpuid-userspace}
 
 Userspace is able to execute the `CPUID` instruction, with no special privileges
 required, and the same data is available to userspace as to the
@@ -212,7 +212,7 @@ require any special privileges to work.
 
 [^cpuid-fault]: CPUID faulting and [ARCH_SET_CPUID](https://github.com/torvalds/linux/commit/e9ea1e7f53b852147cbd568b0568c7ad97ec21a3) makes this a bit more complicated, but I'm ignoring that for now.
 
-### MSRs
+### MSRs {#msrs-userspace}
 
 The `RDMSR` instruction only works at privilege level 0, so userspace can't
 execute it directly.  However, software like `msr-tools` and `x86info` can read
@@ -220,7 +220,7 @@ MSRs using the special devices at `/dev/cpu/*/msr` if they have the right
 permissions.
 
 
-### `/proc/cpuinfo`
+### `/proc/cpuinfo` {#proc-cpuinfo}
 
 The `/proc/cpuinfo` file is probably the most popular and obvious way to get
 most information about CPU features in Linux.  Example output:
@@ -261,7 +261,7 @@ flags` and `bugs`.  We'll discuss how `/proc/cpuinfo` works in more detail
 later.
 
 
-# How the Linux kernel keeps track of CPU features
+# How the Linux kernel keeps track of CPU features {#linux-cpuinfo}
 
 ```mermaid
 flowchart TB
@@ -297,9 +297,9 @@ Note that the file is split in different sections: some sections correspond to
 specific CPUID leaves, while some sections contain flags coming from multiple
 sources.
 
-# How KVM controls CPU features
+# How KVM controls CPU features {#kvm-cpu-features}
 
-## Differences to bare metal
+## Differences to bare metal {#kvm-differences-to-baremetal}
 
 When running a virtual machine in x86 using KVM, the following things are
 different from regular bare metal `CPUID` and `RDMSR`:
@@ -322,7 +322,7 @@ expected, guest software will break.
     SDM][intel-sdm] for low-level details.
 
 
-## Overview
+## Overview {#kvm-cpu-features-overview}
 
 The following diagram shows the *data flow* between relevant KVM ioctls
 related to CPU feature configuration:
@@ -416,7 +416,7 @@ The documentation for the KVM API (including the ioctls mentioned above) can be
 found at <https://docs.kernel.org/virt/kvm/api.html>.
 
 
-## The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID`
+## The meaning of "supported" in `KVM_GET_SUPPORTED_CPUID` {#kvm-meaning-of-KVM_GET_SUPPORTED_CPUID}
 
 Most of the features returned by `KVM_GET_SUPPORTED_CPUID` are features
 supported by *both* host hardware and by KVM.  However, it's possible for some
@@ -427,7 +427,7 @@ implemented by the KVM APIC emulation code, and doesn't require host hardware
 support.
 
 
-# How QEMU controls CPU features
+# How QEMU controls CPU features {#qemu-cpu-features}
 
 The following diagram shows the *data flow* between multiple stages of the
 initialization of VCPU features by QEMU:
@@ -541,7 +541,7 @@ Highlights of the process:
   migrating a VM from another host.  This has some consequences for live
   migration safety.  Details below.
 
-## Machine type compat properties
+## Machine type compat properties {#qemu-machine-type-compat-props}
 
 Historically, QEMU used machine-type-provided compatibility properties to
 introduce changes in CPU models while keeping compatibility with older QEMU
@@ -555,7 +555,7 @@ CPU model changes need to be introduced.  This ensures the selected machine type
 won't affect the CPU features seen by guests.
 
 
-## Feature filtering
+## Feature filtering {#qemu-feature-filtering}
 
 QEMU feature filtering is subtle.  It's one of the areas where the default
 behavior of QEMU is not the safest or most appropriate, but it never changed
@@ -569,7 +569,7 @@ hosts. This has consequences for live migration safety (see next section).
 The safer behavior (refusing to run the VM if a feature is missing) can be
 enabled by using the `-cpu ...,enforce` command line option.
 
-## What can make a feature be filtered out?
+## What can make a feature be filtered out? {#qemu-feature-filtering-reasons}
 
 Some of the reasons a feature might be filtered out by QEMU:
 
@@ -587,7 +587,7 @@ Some of the reasons a feature might be filtered out by QEMU:
     * QEMU doesn't support live migration with the feature yet.
 
 
-## Live migration
+## Live migration {#qemu-live-migration}
 
 QEMU **does not send CPUID data in the live migration stream** when live
 migrating.  QEMU generates the CPUID data again on the migration destination.
@@ -611,14 +611,14 @@ the exceptions are:
     strict conditions are met.  In practice, it's very easy to break and it's
     discouraged.
 
-## Visualizing QEMU's view of CPU flags
+## Visualizing QEMU's view of CPU flags {#qemu-visualizing}
 
 TODO: describe a simple way to query for info from the `max` CPU model using QMP.
 
 
-# How libvirt controls CPU features
+# How libvirt controls CPU features {#libvirt-cpu-features}
 
-## libvirt APIs related to CPU model/features
+## libvirt APIs related to CPU model/features {#libvirt-cpu-apis}
 
 The main reference for configuring CPU model for a VM in libvirt is at:
 https://libvirt.org/formatdomain.html#cpu-model-and-topology
@@ -631,17 +631,17 @@ mechanisms available:
 * The [VIR_DOMAIN_XML_UPDATE_CPU](https://libvirt.org/html/libvirt-libvirt-domain.html#VIR_DOMAIN_XML_UPDATE_CPU) flag at [virDomainGetXMLDesc](https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetXMLDesc) can be used to check which CPU model and features were actually enabled for a VM.
 
 
-## Caveats
+## Caveats {#libvirt-caveats}
 
 
-### libvirt API is not QEMU-specific nor KVM-specific
+### libvirt API is not QEMU-specific nor KVM-specific {#libvirt-generic-api}
 
 libvirt tries very hard to be a generic API for virtualization, which means the
 semantics of CPU models and features often won't match QEMU's behavior
 exactly.
 
 
-### libvirt's own CPU model definitions
+### libvirt's own CPU model definitions {#libvirt-cpu-models}
 
 libvirt has its own CPU model definitions, which are normally stored in
 `/usr/share/libvirt/cpu_map`.  libvirt's documentation states:
@@ -656,7 +656,7 @@ The documentation isn't clear on what happens if libvirt and QEMU disagree on
 the exact definition of a CPU model.
 
 
-### libvirt's own feature name definitiosn
+### libvirt's own feature name definitios {#libvirt-feature-names}
 
 The feature name supported by libvirt are also stored in the `cpu_map`
 directory.  The names used by libvirt and QEMU normally match, but this isn't
@@ -667,7 +667,7 @@ The lack of a feature name in libvirt's `cpu_map` makes it difficult for libvirt
 to report when those features are filtered out by QEMU.
 
 
-### Features hidden behind a CPU model
+### Features hidden behind a CPU model {#libvirt-features-hidden-by-cpu-model}
 
 Many of the libvirt APIs that return CPU model information won't return feature
 names explicitly if they are already considered part of the CPU model.  This is
@@ -677,7 +677,7 @@ but it can make the data ambiguous or incomplete when they disagree.
 See https://libvirt.org/html/libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES at https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU for possible mechanisms to work around this.
 
 
-### Enabling `-cpu ...,enforce`
+### Enabling `-cpu ...,enforce` {#libvirt-cpu-enforce}
 
 There's no obvious way to enable the `-cpu ...,enforce` QEMU option using libvirt.
 
@@ -687,7 +687,7 @@ element](https://libvirt.org/formatdomain.html#cpu-model-and-topology), but the
 documentation is not entirely clear.
 
 
-### Backwards compatibility and non-optimal defaults
+### Backwards compatibility and non-optimal defaults {#libvirt-backwards-compatibility}
 
 Most of the non-obvious behavior of libvirt can be explained by backwards
 compatibility guarantees.  Sometimes it's not possible to change libvirt's
