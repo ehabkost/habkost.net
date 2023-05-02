@@ -613,7 +613,19 @@ the exceptions are:
 
 ## Visualizing QEMU's view of CPU flags
 
-TODO: describe a simple way to query for info from the `max` CPU model using QMP.
+There's no human-friendly way to query QEMU for the CPU features it has detected
+as supported, but there's a QMP command that can be used to query for that
+information: if you run `query-cpu-model-expansion` using the `max` CPU model as
+argument, all features supported by the host will be returned.  You can use the
+following shell command to run it:
+
+```bash
+echo '{"execute":"qmp_capabilities"}
+  {"execute":"query-cpu-model-expansion", "arguments":{"type":"full", "model":{"name":"max"}}}
+  {"execute":"quit"}' | qemu-system-x86_64 -machine accel=kvm -S -qmp stdio | jq '.return.model.props'
+```
+
+(The `| jq ...` part is optional, but will make the output more readable if you have `jq` installed)
 
 
 # How libvirt controls CPU features
