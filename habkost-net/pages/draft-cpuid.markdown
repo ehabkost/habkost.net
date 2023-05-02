@@ -627,7 +627,7 @@ For querying information about CPU models and features, there are multiple
 mechanisms available:
 
 * [virConnectBaselineHypervisorCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineHypervisorCPU) for querying hypervisor CPU model and features.
-* [virConnectBaselineCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU) which is an old function that is not likely to be useful.
+* [virConnectBaselineCPU](https://libvirt.org/html/libvirt-libvirt-host.html#virConnectBaselineCPU), which is probably not what you are looking for.
 * The [VIR_DOMAIN_XML_UPDATE_CPU](https://libvirt.org/html/libvirt-libvirt-domain.html#VIR_DOMAIN_XML_UPDATE_CPU) flag at [virDomainGetXMLDesc](https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetXMLDesc) can be used to check which CPU model and features were actually enabled for a VM.
 
 
