@@ -1,6 +1,6 @@
 ---
 layout: page
-permalink: /docs/kvm/cpuid-guide.html
+permalink: /docs/kvm-cpuid-guide.html
 title: KVM and CPU identification in x86
 ---
 - [The basics: CPUID and MSR](#the-basics-cpuid-and-msr)
