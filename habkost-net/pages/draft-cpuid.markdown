@@ -658,7 +658,7 @@ the exact definition of a CPU model.
 
 ### libvirt's own feature name definitios
 
-The feature name supported by libvirt are also stored in the `cpu_map`
+The feature names supported by libvirt are also stored in the `cpu_map`
 directory.  The names used by libvirt and QEMU normally match, but this isn't
 always guaranteed.  Also, some features may be not present in libvirt's
 `cpu_map` list and can't be controlled by libvirt.
