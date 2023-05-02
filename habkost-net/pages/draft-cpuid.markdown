@@ -28,7 +28,7 @@ title: KVM and CPU identification in x86
 - [How libvirt controls CPU features](#how-libvirt-controls-cpu-features)
   - [libvirt APIs related to CPU model/features](#libvirt-apis-related-to-cpu-modelfeatures)
   - [Caveats](#caveats)
-    - [libvirt API is not QEMU-specific nor KVM-specific](#libvirt-api-is-not-qemu-specific-nor-kvm-specific)
+    - [The libvirt API is not QEMU-specific nor KVM-specific](#the-libvirt-api-is-not-qemu-specific-nor-kvm-specific)
     - [libvirt's own CPU model definitions](#libvirts-own-cpu-model-definitions)
     - [libvirt's own feature name definitios](#libvirts-own-feature-name-definitios)
     - [Features hidden behind a CPU model](#features-hidden-behind-a-cpu-model)
@@ -634,11 +634,11 @@ mechanisms available:
 ## Caveats
 
 
-### libvirt API is not QEMU-specific nor KVM-specific
+### The libvirt API is not QEMU-specific nor KVM-specific
 
 libvirt tries very hard to be a generic API for virtualization, which means the
 semantics of CPU models and features often won't match QEMU's behavior
-exactly.
+exactly.  Some of the differences are described below.
 
 
 ### libvirt's own CPU model definitions
