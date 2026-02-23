@@ -18,13 +18,16 @@ echo "$UPLOAD_SSH_KEY" > ~/.ssh/id_for_upload
 chmod 600 ~/.ssh/id_for_upload
 echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
 
-RSYNC_OPTS="-avz"
+echo "=== Private key fingerprint ==="
+ssh-keygen -l -f ~/.ssh/id_for_upload
+echo "==============================="
+
+RSYNC_OPTS=(-avz -e "ssh -v -i ~/.ssh/id_for_upload")
 if [ "${DELETE:-0}" = "1" ]; then
-    RSYNC_OPTS="$RSYNC_OPTS --delete"
+    RSYNC_OPTS+=(--delete)
 fi
 if [ "${DRY_RUN:-0}" = "1" ]; then
-    RSYNC_OPTS="$RSYNC_OPTS --dry-run"
+    RSYNC_OPTS+=(--dry-run)
 fi
 
-# shellcheck disable=SC2086
-rsync $RSYNC_OPTS "$SITE_DIR" "$UPLOAD_USERNAME@$UPLOAD_HOST:$UPLOAD_PATH/"
+rsync "${RSYNC_OPTS[@]}" "$SITE_DIR" "$UPLOAD_USERNAME@$UPLOAD_HOST:$UPLOAD_PATH/"
