@@ -1,6 +1,9 @@
 name: Jekyll build
 
-on: [push, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,22 +33,122 @@ jobs:
       #  id: pages
       #  uses: actions/configure-pages@v3
       - name: Build with Jekyll
-        # Outputs to the './_site' directory by default
-        run: bundle exec jekyll build --source ./habkost-net --baseurl "${{ steps.pages.outputs.base_path }}"
+        run: bundle exec jekyll build --source ./habkost-net
         env:
           JEKYLL_ENV: production
       - name: Upload artifact
-        # Automatically uploads an artifact from the './_site' directory by default
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site/
 
-#  # Deployment job
-#  deploy:
-#    environment:
-#      name: github-pages
-#      url: ${{ steps.deployment.outputs.page_url }}
-#    runs-on: ubuntu-latest
-#    needs: build
-#    steps:
-#      - name: Deploy to GitHub Pages
-#        id: deployment
-#        uses: actions/deploy-pages@v2
+  # Deploy to production (main branch pushes only)
+  deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Deploy via rsync (no delete)
+        run: bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+      - name: Show files that would be deleted
+        run: |
+          echo '## Files that would be deleted from production' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          bash .github/scripts/deploy.sh 2>&1 | grep '^deleting ' >> "$GITHUB_STEP_SUMMARY" || echo '(none)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          DRY_RUN: "1"
+          DELETE: "1"
+
+  # Cleanup production: delete stale files (requires manual approval via environment)
+  cleanup-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    environment: production-delete
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Delete stale files via rsync
+        run: bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          DELETE: "1"
+
+  # Deploy PR preview (one subdirectory per PR number)
+  deploy-preview:
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Deploy via rsync
+        run: bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}
+          DELETE: "1"
+
+  # Deploy branch preview (non-main branch pushes)
+  deploy-branch-preview:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Deploy via rsync
+        run: |
+          BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}" bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          DELETE: "1"
+
