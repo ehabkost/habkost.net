@@ -38,6 +38,50 @@ jobs:
           name: site
           path: _site/
 
+  # Check for URL changes against production manifest (PRs only)
+  check-urls:
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Compare URLs against production manifest
+        run: |
+          if [ ! -f _prod-manifest.txt ]; then
+            echo "## URL check" >> "$GITHUB_STEP_SUMMARY"
+            echo "_No production manifest found — run the **Production backup** workflow first._" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          find _site -type f | sed 's|^_site/||' | sort > _new-manifest.txt
+
+          DELETED=$(comm -23 _prod-manifest.txt _new-manifest.txt)
+          ADDED=$(comm -13 _prod-manifest.txt _new-manifest.txt)
+
+          echo "## URL check" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$DELETED" ]; then
+            echo "### :warning: Deleted files (potential broken URLs)" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$DELETED" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**No files deleted.** :white_check_mark:" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ -n "$ADDED" ]; then
+            echo "### New files" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$ADDED" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # Deploy to production (main branch pushes only)
   deploy-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -127,4 +171,5 @@ jobs:
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
           DELETE: "1"
+
 
