@@ -29,6 +29,17 @@ jobs:
           ruby-version: '3.1' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           cache-version: 0 # Increment this number if you need to re-download cached gems
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: habkost-net/package-lock.json
+      - name: Generate images (mermaid diagrams)
+        run: |
+          npm install
+          make
+        working-directory: habkost-net
       - name: Build with Jekyll
         run: bundle exec jekyll build --source ./habkost-net
         env:
