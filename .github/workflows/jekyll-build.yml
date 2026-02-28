@@ -45,6 +45,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Download built site artifact
         uses: actions/download-artifact@v4
         with:
@@ -73,27 +75,7 @@ jobs:
         if: hashFiles('_prod-manifest.txt') != ''
         run: |
           find _site -type f | sed 's|^_site/||' | sort > _new-manifest.txt
-
-          DELETED=$(comm -23 _prod-manifest.txt _new-manifest.txt)
-          ADDED=$(comm -13 _prod-manifest.txt _new-manifest.txt)
-
-          echo "## URL check" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ -n "$DELETED" ]; then
-            echo "### :warning: Deleted files (potential broken URLs)" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "$DELETED" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "**No files deleted.** :white_check_mark:" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          if [ -n "$ADDED" ]; then
-            echo "### New files" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "$ADDED" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          python3 .github/scripts/check-urls.py
 
   # Deploy to production (main branch pushes only)
   deploy-production:
