@@ -104,7 +104,9 @@ jobs:
     if: github.event_name == 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    environment: preview
+    environment:
+      name: preview
+      url: https://${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -128,7 +130,9 @@ jobs:
     if: github.event_name == 'push' && github.ref != 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
-    environment: preview
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.preview_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -138,10 +142,12 @@ jobs:
           name: site
           path: _site/
       - name: Deploy via rsync
+        id: deploy
         run: |
           BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
           export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}"
           bash .github/scripts/deploy.sh
+          echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
