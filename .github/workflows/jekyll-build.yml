@@ -8,10 +8,9 @@ on:
 permissions:
   contents: read
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Allow only one concurrent deployment per target.
 concurrency:
-  group: "pages"
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -29,9 +28,6 @@ jobs:
           ruby-version: '3.1' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           cache-version: 0 # Increment this number if you need to re-download cached gems
-      #- name: Setup Pages
-      #  id: pages
-      #  uses: actions/configure-pages@v3
       - name: Build with Jekyll
         run: bundle exec jekyll build --source ./habkost-net
         env:
@@ -144,7 +140,8 @@ jobs:
       - name: Deploy via rsync
         run: |
           BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}" bash .github/scripts/deploy.sh
+          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}"
+          bash .github/scripts/deploy.sh
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}

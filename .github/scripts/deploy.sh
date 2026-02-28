@@ -18,11 +18,7 @@ echo "$UPLOAD_SSH_KEY" > ~/.ssh/id_for_upload
 chmod 600 ~/.ssh/id_for_upload
 echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
 
-echo "=== Private key fingerprint ==="
-ssh-keygen -l -f ~/.ssh/id_for_upload
-echo "==============================="
-
-RSYNC_OPTS=(-avz -e "ssh -v -i ~/.ssh/id_for_upload")
+RSYNC_OPTS=(-avz -e "ssh -i ~/.ssh/id_for_upload")
 if [ "${DELETE:-0}" = "1" ]; then
     RSYNC_OPTS+=(--delete)
 fi
