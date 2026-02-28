@@ -99,35 +99,9 @@ jobs:
           UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
           DELETE: "1"
 
-  # Deploy PR preview (one subdirectory per PR number)
+  # Deploy preview (PRs and non-main branch pushes)
   deploy-preview:
-    if: github.event_name == 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: preview
-      url: https://${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: _site/
-      - name: Deploy via rsync
-        run: bash .github/scripts/deploy.sh
-        env:
-          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
-          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
-          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
-          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}
-          DELETE: "1"
-
-  # Deploy branch preview (non-main branch pushes)
-  deploy-branch-preview:
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -144,8 +118,13 @@ jobs:
       - name: Deploy via rsync
         id: deploy
         run: |
-          BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SUBPATH="pr-${{ github.event.pull_request.number }}"
+          else
+            BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            SUBPATH="branch-${BRANCH}"
+          fi
+          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/${SUBPATH}"
           bash .github/scripts/deploy.sh
           echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
         env:
