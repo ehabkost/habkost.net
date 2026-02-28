@@ -143,12 +143,14 @@ jobs:
           UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
           DELETE: "1"
 
-  # Deploy PR preview (one subdirectory per PR number)
+  # Deploy preview (PRs only)
   deploy-preview:
     if: github.event_name == 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    environment: preview
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.preview_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,38 +160,16 @@ jobs:
           name: site
           path: _site/
       - name: Deploy via rsync
-        run: bash .github/scripts/deploy.sh
+        id: deploy
+        run: |
+          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}"
+          bash .github/scripts/deploy.sh
+          echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}
           DELETE: "1"
 
-  # Deploy branch preview (non-main branch pushes)
-  deploy-branch-preview:
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    environment: preview
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: _site/
-      - name: Deploy via rsync
-        run: |
-          BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/branch-${BRANCH}"
-          bash .github/scripts/deploy.sh
-        env:
-          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
-          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
-          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
-          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          DELETE: "1"
 
