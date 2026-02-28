@@ -99,9 +99,9 @@ jobs:
           UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
           DELETE: "1"
 
-  # Deploy preview (PRs and non-main branch pushes)
+  # Deploy preview (PRs only)
   deploy-preview:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
+    if: github.event_name == 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -118,13 +118,7 @@ jobs:
       - name: Deploy via rsync
         id: deploy
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            SUBPATH="pr-${{ github.event.pull_request.number }}"
-          else
-            BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-            SUBPATH="branch-${BRANCH}"
-          fi
-          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/${SUBPATH}"
+          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}"
           bash .github/scripts/deploy.sh
           echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
         env:
