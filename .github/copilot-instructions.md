@@ -11,5 +11,5 @@
   - If the existing PR was already merged, create a new branch and a new PR.
   - Never create duplicate PRs for the same work.
 
-- Before pushing to an existing branch, always verify the associated PR hasn't been merged already (`gh pr view <branch> --json state`). If it has, start a new branch from `origin/main`.
+- Before pushing to an existing branch, always verify the associated PR hasn't been merged already (`gh pr view <branch> --json state`). If it has, create a new PR.
 
