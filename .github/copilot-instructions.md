@@ -4,6 +4,7 @@
 
 - Commit often when working on a task. Use clear, descriptive commit messages.
 - Pay attention to the branch name — it should reflect the work being done. Create a new branch if the current one doesn't match the task.
+- Do not keep a local `main` branch that needs to be updated often. Use `origin/main` directly as the base for new branches (e.g. `git checkout -b my-branch origin/main`).
 - When a feature is ready, push it and check whether a PR exists:
   - If no PR exists, create a **draft PR** immediately after pushing.
   - If a PR already exists for the branch, just push — no new PR needed.
