@@ -37,6 +37,11 @@ gems:
 exclude:
   - Gemfile
   - Gemfile.lock
+  - Makefile
+  - package.json
+  - package-lock.json
+  - puppeteer-config.json
+  - node_modules/
   - talks/fosdem-2017
   - talks/linuxdevbr-2018
 keep_files:
