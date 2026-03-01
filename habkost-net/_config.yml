@@ -20,7 +20,7 @@ description: >
     Software Developer. C; QEMU; KVM; virtualization; Linux; Python; etc.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://habkost.net" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: ehabkost
+bluesky_handle: habkost.net
 github_username:  ehabkost
 linkedin_username: ehabkost
 permalink: /posts/:year/:month/:slug.html
