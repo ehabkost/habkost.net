@@ -176,7 +176,7 @@ jobs:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: deploy-production
     runs-on: ubuntu-latest
-    environment: production-delete
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
