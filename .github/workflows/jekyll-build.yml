@@ -49,9 +49,8 @@ jobs:
           name: site
           path: _site/
 
-  # Check for URL changes against production manifest (PRs only)
+  # Check for URL changes against production manifest
   check-urls:
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     permissions:
