@@ -10,6 +10,15 @@ permissions:
   contents: read
   actions: read
 
+env:
+  PRODUCTION_DOMAIN: habkost.net
+  STAGING_DOMAIN: staging.habkost.net
+  PREVIEW_DOMAIN: preview.habkost.net
+  PROD_BASEURL: ""
+  PREVIEW_BASEURL: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
+  # Effective baseurl for the build: PREVIEW_BASEURL on PRs, PROD_BASEURL on main
+  BUILD_BASEURL: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
+
 # Allow only one concurrent deployment per target.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,7 +49,7 @@ jobs:
           make
         working-directory: habkost-net
       - name: Build with Jekyll
-        run: bundle exec jekyll build --source ./habkost-net
+        run: bundle exec jekyll build --source ./habkost-net --baseurl "$BUILD_BASEURL"
         env:
           JEKYLL_ENV: production
       - name: Upload artifact
@@ -98,10 +107,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+  # Deploy staging (main branch — verify before production)
+  deploy-staging:
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: https://${{ env.STAGING_DOMAIN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Deploy via rsync
+        run: bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ env.STAGING_DOMAIN }}
+
   # Deploy to production (main branch pushes and manual triggers)
   deploy-production:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    needs: build
+    needs: deploy-staging
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -119,7 +153,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
       - name: Show files that would be deleted
         run: |
           echo '## Files that would be deleted from production' >> "$GITHUB_STEP_SUMMARY"
@@ -131,7 +165,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
           DRY_RUN: "1"
           DELETE: "1"
 
@@ -156,7 +190,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
           DELETE: "1"
 
   # Deploy preview (PRs only)
@@ -178,14 +212,14 @@ jobs:
       - name: Deploy via rsync
         id: deploy
         run: |
-          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}"
           bash .github/scripts/deploy.sh
-          echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
+          echo "preview_url=https://${{ env.PREVIEW_DOMAIN }}$BUILD_BASEURL" >> "$GITHUB_OUTPUT"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ env.PREVIEW_DOMAIN }}${{ env.BUILD_BASEURL }}
           DELETE: "1"
 
 
