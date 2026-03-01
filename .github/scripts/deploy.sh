@@ -21,6 +21,16 @@ echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
 RSYNC_OPTS=(-avz -e "ssh -i ~/.ssh/id_for_upload")
 if [ "${DELETE:-0}" = "1" ]; then
     RSYNC_OPTS+=(--delete)
+    # Protect paths listed in deploy-no-delete.txt from deletion
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    NO_DELETE_FILE="$SCRIPT_DIR/../deploy-no-delete.txt"
+    if [ -f "$NO_DELETE_FILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            # skip empty lines and comments
+            case "$line" in ''|\#*) continue ;; esac
+            RSYNC_OPTS+=(--filter "protect $line")
+        done < "$NO_DELETE_FILE"
+    fi
 fi
 if [ "${DRY_RUN:-0}" = "1" ]; then
     RSYNC_OPTS+=(--dry-run)

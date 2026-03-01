@@ -1,0 +1,5 @@
+# Files and directories that will never be deleted from the server when publishing.
+# One path per line. Lines starting with # are comments.
+# These use rsync --filter 'protect' rules, so they are relative to UPLOAD_PATH.
+
+.well-known/acme-challenge
