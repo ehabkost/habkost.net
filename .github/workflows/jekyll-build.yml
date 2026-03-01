@@ -15,7 +15,7 @@ env:
   STAGING_DOMAIN: staging.habkost.net
   PREVIEW_DOMAIN: preview.habkost.net
   # /pr-{N} on pull requests, empty on main — used by build (--baseurl) and deploy (UPLOAD_PATH)
-  PREVIEW_SUBDIR: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
+  BUILD_BASEURL: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
 
 # Allow only one concurrent deployment per target.
 concurrency:
@@ -47,7 +47,7 @@ jobs:
           make
         working-directory: habkost-net
       - name: Build with Jekyll
-        run: bundle exec jekyll build --source ./habkost-net --baseurl "$PREVIEW_SUBDIR"
+        run: bundle exec jekyll build --source ./habkost-net --baseurl "$BUILD_BASEURL"
         env:
           JEKYLL_ENV: production
       - name: Upload artifact
@@ -211,13 +211,13 @@ jobs:
         id: deploy
         run: |
           bash .github/scripts/deploy.sh
-          echo "preview_url=https://${{ env.PREVIEW_DOMAIN }}$PREVIEW_SUBDIR" >> "$GITHUB_OUTPUT"
+          echo "preview_url=https://${{ env.PREVIEW_DOMAIN }}$BUILD_BASEURL" >> "$GITHUB_OUTPUT"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ env.PREVIEW_DOMAIN }}${{ env.PREVIEW_SUBDIR }}
+          UPLOAD_PATH: ${{ env.PREVIEW_DOMAIN }}${{ env.BUILD_BASEURL }}
           DELETE: "1"
 
 
