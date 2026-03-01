@@ -21,6 +21,12 @@ Commit often. Use clear, descriptive commit messages.
    - If open → push normally; no new PR needed.
    - If no PR exists → push, then create one immediately.
 
+### After making changes — required steps
+
+1. **Always commit and push.** Every file edit must be followed by a commit and push before considering the task done.
+2. **Create a PR** if one doesn't exist yet for the branch.
+3. Never leave uncommitted changes or unpushed commits at the end of a task.
+
 ### PR rules
 
 - Create a PR immediately after the first push to a new branch. Use a draft PR only if the task is not yet finished.
