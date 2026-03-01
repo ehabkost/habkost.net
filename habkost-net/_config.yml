@@ -48,5 +48,8 @@ keep_files:
   - talks/fosdem-2017
   - talks/linuxdevbr-2018
 
+include:
+  - .htaccess
+
 disqus:
   shortname: habkost
