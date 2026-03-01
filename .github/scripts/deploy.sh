@@ -10,6 +10,7 @@ set -euo pipefail
 #   SITE_DIR           - local directory to upload (default: _site/)
 #   DELETE             - set to "1" to pass --delete to rsync
 #   DRY_RUN            - set to "1" to pass --dry-run to rsync
+#   DELETIONS_FILE     - when set (with DELETE=1), write list of deleted paths to this file
 
 SITE_DIR="${SITE_DIR:-_site/}"
 
@@ -36,4 +37,16 @@ if [ "${DRY_RUN:-0}" = "1" ]; then
     RSYNC_OPTS+=(--dry-run)
 fi
 
-rsync "${RSYNC_OPTS[@]}" "$SITE_DIR" "$UPLOAD_USERNAME@$UPLOAD_HOST:$UPLOAD_PATH/"
+if [ -n "${DELETIONS_FILE:-}" ]; then
+    RSYNC_OPTS+=(--itemize-changes)
+fi
+
+rsync "${RSYNC_OPTS[@]}" "$SITE_DIR" "$UPLOAD_USERNAME@$UPLOAD_HOST:$UPLOAD_PATH/" \
+  | tee /dev/stderr \
+  | if [ -n "${DELETIONS_FILE:-}" ]; then
+      # Extract deleted paths from rsync --itemize-changes output.
+      # Deletion lines have the format: "*deleting   path/to/file"
+      sed -n 's/^\*deleting[[:space:]]\+//p' > "$DELETIONS_FILE"
+    else
+      cat > /dev/null
+    fi

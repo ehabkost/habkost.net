@@ -161,11 +161,11 @@ jobs:
       - name: Show files that would be deleted
         id: check-deletions
         run: |
-          deletions=$(bash .github/scripts/deploy.sh 2>&1 | grep '^deleting ' || true)
+          bash .github/scripts/deploy.sh
           echo '## Files that would be deleted from production' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          if [ -n "$deletions" ]; then
-            echo "$deletions" >> "$GITHUB_STEP_SUMMARY"
+          if [ -s "$DELETIONS_FILE" ]; then
+            cat "$DELETIONS_FILE" >> "$GITHUB_STEP_SUMMARY"
             echo 'has_files_to_delete=true' >> "$GITHUB_OUTPUT"
           else
             echo '(none)' >> "$GITHUB_STEP_SUMMARY"
@@ -179,6 +179,7 @@ jobs:
           UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
           DRY_RUN: "1"
           DELETE: "1"
+          DELETIONS_FILE: _deletions.txt
 
   # Cleanup production: delete stale files (requires manual approval via environment)
   cleanup-production:
