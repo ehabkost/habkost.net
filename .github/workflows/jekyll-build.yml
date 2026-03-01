@@ -14,7 +14,9 @@ env:
   PRODUCTION_DOMAIN: habkost.net
   STAGING_DOMAIN: staging.habkost.net
   PREVIEW_DOMAIN: preview.habkost.net
-  # /pr-{N} on pull requests, empty on main — used by build (--baseurl) and deploy (UPLOAD_PATH)
+  PROD_BASEURL: ""
+  PREVIEW_BASEURL: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
+  # Effective baseurl for the build: PREVIEW_BASEURL on PRs, PROD_BASEURL on main
   BUILD_BASEURL: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
 
 # Allow only one concurrent deployment per target.
