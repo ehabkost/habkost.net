@@ -77,6 +77,15 @@ jobs:
         run: |
           find _site -type f | sed 's|^_site/||' | sort > _new-manifest.txt
           python3 .github/scripts/check-urls.py
+      - name: Post URL check as PR comment
+        if: github.event_name == 'pull_request' && hashFiles('_url-check-summary.md') != ''
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body-file _url-check-summary.md --edit-last \
+          || gh pr comment ${{ github.event.pull_request.number }} \
+            --body-file _url-check-summary.md
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   # Deploy to production (main branch pushes only)
   deploy-production:

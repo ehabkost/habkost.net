@@ -49,19 +49,25 @@ def collapse(files, all_files):
     return sorted(result)
 
 
-with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
-    out.write('## URL check\n')
-    if deleted:
-        out.write('### :warning: Deleted files (potential broken URLs)\n')
-        out.write('```\n')
-        for line in collapse(deleted, prod):
-            out.write(line + '\n')
-        out.write('```\n')
-    else:
-        out.write('**No files deleted.** :white_check_mark:\n')
-    if added:
-        out.write('### New files\n')
-        out.write('```\n')
-        for line in added:
-            out.write(line + '\n')
-        out.write('```\n')
+lines = []
+lines.append('## URL check\n')
+if deleted:
+    lines.append('### :warning: Deleted files (potential broken URLs)\n')
+    lines.append('```\n')
+    for line in collapse(deleted, prod):
+        lines.append(line + '\n')
+    lines.append('```\n')
+else:
+    lines.append('**No files deleted.** :white_check_mark:\n')
+if added:
+    lines.append('### New files\n')
+    lines.append('```\n')
+    for line in added:
+        lines.append(line + '\n')
+    lines.append('```\n')
+
+content = ''.join(lines)
+with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+    f.write(content)
+with open('_url-check-summary.md', 'w') as f:
+    f.write(content)
