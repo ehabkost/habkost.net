@@ -98,9 +98,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  # Deploy to production (main branch pushes only)
+  # Deploy to production (main branch pushes and manual triggers)
   deploy-production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment: production
@@ -137,7 +137,7 @@ jobs:
 
   # Cleanup production: delete stale files (requires manual approval via environment)
   cleanup-production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: deploy-production
     runs-on: ubuntu-latest
     environment: production-delete
