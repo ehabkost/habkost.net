@@ -48,6 +48,7 @@ jobs:
         with:
           name: site
           path: _site/
+          include-hidden-files: true
 
   # Check for URL changes against production manifest
   check-urls:
