@@ -45,6 +45,3 @@ exclude:
 
 include:
   - .htaccess
-
-disqus:
-  shortname: habkost

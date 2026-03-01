@@ -245,9 +245,3 @@ way or another. That's not a coincidence: one of the things I
 want to write about are how some times those data abstractions
 have conflicting world views, and the issues resulting from that.
 
-
-
-**Feedback wanted:** if you have any correction or suggestion to
-this list, please send your comments. You can use the comment
-system at this blog, or just
-[e-mail me](mailto:ehabkost@redhat.com).
