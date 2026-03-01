@@ -40,7 +40,9 @@ jobs:
           make
         working-directory: habkost-net
       - name: Build with Jekyll
-        run: bundle exec jekyll build --source ./habkost-net
+        run: >
+          bundle exec jekyll build --source ./habkost-net
+          ${{ github.event_name == 'pull_request' && format('--baseurl /pr-{0}', github.event.pull_request.number) || '' }}
         env:
           JEKYLL_ENV: production
       - name: Upload artifact
@@ -98,10 +100,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+  # Deploy staging (main branch — verify before production)
+  deploy-staging:
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: https://${{ vars.UPLOAD_HOST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site/
+      - name: Deploy via rsync
+        run: bash .github/scripts/deploy.sh
+        env:
+          UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
+          UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+
   # Deploy to production (main branch pushes and manual triggers)
   deploy-production:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    needs: build
+    needs: deploy-staging
     runs-on: ubuntu-latest
     environment: production
     steps:
