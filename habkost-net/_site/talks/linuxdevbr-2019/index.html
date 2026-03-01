@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>CPU Vulnerabilities &amp; KVM Security</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/white.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/sunburst.css">
+
+		<style>
+		table.layers tr { border: none; }
+		table.layers td:first-child {
+			text-align: center;
+			border: 2px solid black !important;
+			color: gray;
+		}
+		table.layers tr.visible td {
+			color: black;
+		}
+		table.layers tr.hidden td {
+			color: #dddddd;
+			background-color: #dddddd;
+		}
+		table.layers tr.current td:first-child {
+			background-color: lightblue;
+			color: black;
+			font-weight: bold;
+		}
+		code mark, code mark * { color: white !important; background-color: #202020 !important; font-weight: bold !important; }
+		.reveal h1,
+		.reveal h2,
+		.reveal h3,
+		.reveal h4,
+		.reveal h5,
+		.reveal h6 { text-transform: none !important; }
+		</style>
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown="contents.md" data-separator="^\n\n\n"
+					data-separator-vertical="^\n\n"
+					data-separator-notes="^Note:"
+					data-charset="utf-8">
+				</section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true }
+				],
+				slideNumber: true,
+				history: true,
+				controls: false,
+				fragmentInURL: true,
+				margin: 0.025,
+				width: 1920,
+				height: 1080
+			});
+		</script>
+	</body>
+</html>
