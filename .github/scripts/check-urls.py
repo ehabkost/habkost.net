@@ -8,7 +8,20 @@ prod = Path('_prod-manifest.txt').read_text().splitlines()
 new  = set(Path('_new-manifest.txt').read_text().splitlines())
 prod_set = set(prod)
 
-deleted = sorted(prod_set - new)
+# Load no-delete list: paths that are intentionally kept on the server
+# and should not be treated as "deleted" in the diff.
+_no_delete_file = Path(__file__).parent.parent / 'deploy-no-delete.txt'
+_no_delete_prefixes = []
+if _no_delete_file.exists():
+    for _line in _no_delete_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith('#'):
+            _no_delete_prefixes.append(_line.rstrip('/') + '/')
+
+def _is_protected(path):
+    return any(('/' + path + '/').startswith('/' + p) for p in _no_delete_prefixes)
+
+deleted = sorted(f for f in prod_set - new if not _is_protected(f))
 added   = sorted(new - prod_set)
 
 
