@@ -1,0 +1,10 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "git fetch": true,
+        "gh": true,
+        "git ls-tree": true,
+        "git checkout": true,
+        "git rebase": true,
+        "git stash": true
+    }
+}

@@ -1,0 +1,3 @@
+[submodule "habkost-net/talks/linuxdevbr-2019"]
+	path = habkost-net/talks/linuxdevbr-2019
+	url = https://github.com/ehabkost/talks-linuxdevbr-2019.git

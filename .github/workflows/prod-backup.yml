@@ -1,0 +1,43 @@
+name: Production backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 0'  # every Sunday at 02:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download production site via rsync
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.UPLOAD_SSH_KEY }}" > ~/.ssh/id_for_upload
+          chmod 600 ~/.ssh/id_for_upload
+          echo "${{ vars.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          mkdir -p prod-backup
+          rsync -avz \
+            -e "ssh -i ~/.ssh/id_for_upload" \
+            "${{ vars.UPLOAD_USERNAME }}@${{ vars.UPLOAD_HOST }}:${{ vars.UPLOAD_PATH }}/" \
+            prod-backup/
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-backup
+          path: prod-backup/
+          retention-days: 90
+
+      - name: Generate and upload manifest
+        run: |
+          find prod-backup -type f | sed 's|^prod-backup/||' | sort > prod-manifest.txt
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-manifest
+          path: prod-manifest.txt
+          retention-days: 90
