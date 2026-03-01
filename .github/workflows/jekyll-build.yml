@@ -10,6 +10,10 @@ permissions:
   contents: read
   actions: read
 
+env:
+  # /pr-{N} on pull requests, empty on main — used by build (--baseurl) and deploy (UPLOAD_PATH)
+  PREVIEW_SUBDIR: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
+
 # Allow only one concurrent deployment per target.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,9 +44,7 @@ jobs:
           make
         working-directory: habkost-net
       - name: Build with Jekyll
-        run: >
-          bundle exec jekyll build --source ./habkost-net
-          ${{ github.event_name == 'pull_request' && format('--baseurl /pr-{0}', github.event.pull_request.number) || '' }}
+        run: bundle exec jekyll build --source ./habkost-net --baseurl "$PREVIEW_SUBDIR"
         env:
           JEKYLL_ENV: production
       - name: Upload artifact
@@ -205,14 +207,14 @@ jobs:
       - name: Deploy via rsync
         id: deploy
         run: |
-          export UPLOAD_PATH="${{ vars.UPLOAD_PATH }}/pr-${{ github.event.pull_request.number }}"
           bash .github/scripts/deploy.sh
-          echo "preview_url=https://${UPLOAD_PATH}" >> "$GITHUB_OUTPUT"
+          echo "preview_url=https://${{ vars.UPLOAD_HOST }}$PREVIEW_SUBDIR" >> "$GITHUB_OUTPUT"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
+          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}${{ env.PREVIEW_SUBDIR }}
           DELETE: "1"
 
 
