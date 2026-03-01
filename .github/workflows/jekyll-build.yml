@@ -11,6 +11,8 @@ permissions:
   actions: read
 
 env:
+  PRODUCTION_DOMAIN: habkost.net
+  STAGING_DOMAIN: staging.habkost.net
   PREVIEW_DOMAIN: preview.habkost.net
   # /pr-{N} on pull requests, empty on main — used by build (--baseurl) and deploy (UPLOAD_PATH)
   PREVIEW_SUBDIR: ${{ github.event_name == 'pull_request' && format('/pr-{0}', github.event.pull_request.number) || '' }}
@@ -110,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: preview
-      url: https://${{ env.PREVIEW_DOMAIN }}
+      url: https://${{ env.STAGING_DOMAIN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -126,7 +128,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.STAGING_DOMAIN }}
 
   # Deploy to production (main branch pushes and manual triggers)
   deploy-production:
@@ -149,7 +151,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
       - name: Show files that would be deleted
         run: |
           echo '## Files that would be deleted from production' >> "$GITHUB_STEP_SUMMARY"
@@ -161,7 +163,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
           DRY_RUN: "1"
           DELETE: "1"
 
@@ -186,7 +188,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+          UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
           DELETE: "1"
 
   # Deploy preview (PRs only)
@@ -215,7 +217,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
           UPLOAD_USERNAME: ${{ vars.UPLOAD_USERNAME }}
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
-          UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}${{ env.PREVIEW_SUBDIR }}
+          UPLOAD_PATH: ${{ env.PREVIEW_DOMAIN }}${{ env.PREVIEW_SUBDIR }}
           DELETE: "1"
 
 
