@@ -140,6 +140,8 @@ jobs:
     needs: deploy-staging
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      has_files_to_delete: ${{ steps.check-deletions.outputs.has_files_to_delete }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -157,10 +159,17 @@ jobs:
           UPLOAD_HOST: ${{ vars.UPLOAD_HOST }}
           UPLOAD_PATH: ${{ env.PRODUCTION_DOMAIN }}
       - name: Show files that would be deleted
+        id: check-deletions
         run: |
+          deletions=$(bash .github/scripts/deploy.sh 2>&1 | grep '^deleting ' || true)
           echo '## Files that would be deleted from production' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          bash .github/scripts/deploy.sh 2>&1 | grep '^deleting ' >> "$GITHUB_STEP_SUMMARY" || echo '(none)' >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$deletions" ]; then
+            echo "$deletions" >> "$GITHUB_STEP_SUMMARY"
+            echo 'has_files_to_delete=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '(none)' >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
         env:
           UPLOAD_SSH_KEY: ${{ secrets.UPLOAD_SSH_KEY }}
@@ -173,7 +182,7 @@ jobs:
 
   # Cleanup production: delete stale files (requires manual approval via environment)
   cleanup-production:
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.deploy-production.outputs.has_files_to_delete == 'true'
     needs: deploy-production
     runs-on: ubuntu-latest
     environment: production
